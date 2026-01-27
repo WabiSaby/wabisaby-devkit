@@ -395,6 +395,30 @@ section h2 {
     }
 }
 
+.operation-status {
+    margin-top: 10px;
+}
+
+.operation-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+.operation-test {
+    background-color: var(--info-color);
+    color: white;
+}
+
+.operation-build {
+    background-color: var(--warning-color);
+    color: white;
+}
+
 @media (max-width: 768px) {
     .projects-grid, .services-grid {
         grid-template-columns: 1fr;

@@ -15,6 +15,8 @@ const services = [
 ];
 
 let theme = localStorage.getItem('theme') || 'light';
+let projectOperationStatus = {}; // Track running operations per project
+let projectLogs = {}; // Store logs for each project
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -74,12 +76,19 @@ async function loadProjects() {
         
         if (result.success && result.data) {
             result.data.forEach(project => {
+                // Merge with existing operation status if available
+                if (projectOperationStatus[project.name]) {
+                    project.operationStatus = projectOperationStatus[project.name];
+                }
                 const card = createProjectCard(project);
                 grid.appendChild(card);
             });
         } else {
             // Fallback to default projects if API fails
             projects.forEach(project => {
+                if (projectOperationStatus[project.name]) {
+                    project.operationStatus = projectOperationStatus[project.name];
+                }
                 const card = createProjectCard(project);
                 grid.appendChild(card);
             });
@@ -88,6 +97,9 @@ async function loadProjects() {
         console.error('Failed to load projects:', error);
         // Fallback to default projects
         projects.forEach(project => {
+            if (projectOperationStatus[project.name]) {
+                project.operationStatus = projectOperationStatus[project.name];
+            }
             const card = createProjectCard(project);
             grid.appendChild(card);
         });
@@ -99,9 +111,11 @@ function createProjectCard(project) {
     const statusClass = status === 'clean' ? 'status-ok' : status === 'dirty' ? 'status-warning' : status === 'not-cloned' ? 'status-error' : 'status-info';
     const statusText = status === 'clean' ? 'Clean' : status === 'dirty' ? 'Dirty' : status === 'not-cloned' ? 'Not Cloned' : 'Unknown';
     const isCloned = project.branch && project.branch !== '-';
+    const operationStatus = project.operationStatus || projectOperationStatus[project.name] || { type: null, running: false };
     
     const card = document.createElement('div');
     card.className = 'project-card';
+    card.id = `project-card-${project.name}`;
     card.innerHTML = `
         <div class="card-header">
             <div class="card-title">${project.name}</div>
@@ -111,14 +125,22 @@ function createProjectCard(project) {
             <div class="card-info-item">Branch: <span id="branch-${project.name}">${project.branch || '-'}</span></div>
             <div class="card-info-item">Commit: <span id="commit-${project.name}">${project.commit || '-'}</span></div>
             <div class="card-info-item">Status: <span id="dirty-${project.name}">${statusText}</span></div>
+            ${operationStatus.running ? `
+                <div class="card-info-item operation-status">
+                    <span class="operation-badge ${operationStatus.type === 'test' ? 'operation-test' : 'operation-build'}">
+                        ${operationStatus.type === 'test' ? 'Testing...' : 'Building...'}
+                    </span>
+                </div>
+            ` : ''}
         </div>
         <div class="card-actions">
             ${!isCloned ? 
                 `<button class="btn btn-success" onclick="cloneProject('${project.name}')">Clone</button>` :
-                `<button class="btn btn-primary" onclick="updateProject('${project.name}')">Update</button>
-                 <button class="btn btn-secondary" onclick="testProject('${project.name}')">Test</button>
-                 <button class="btn btn-secondary" onclick="buildProject('${project.name}')">Build</button>
-                 <button class="btn btn-info" onclick="openProjectInEditor('${project.name}')" title="Open in Cursor or VSCode">Open</button>`
+                `<button class="btn btn-primary" onclick="updateProject('${project.name}')" ${operationStatus.running ? 'disabled' : ''}>Update</button>
+                 <button class="btn btn-secondary" onclick="testProject('${project.name}')" ${operationStatus.running ? 'disabled' : ''}>Test</button>
+                 <button class="btn btn-secondary" onclick="buildProject('${project.name}')" ${operationStatus.running ? 'disabled' : ''}>Build</button>
+                 <button class="btn btn-info" onclick="viewProjectLogs('${project.name}')" ${operationStatus.running ? '' : 'style="display:none;"'} id="view-logs-${project.name}">View Logs</button>
+                 <button class="btn btn-info" onclick="openProjectInEditor('${project.name}')" title="Open in Cursor or VSCode" ${operationStatus.running ? 'disabled' : ''}>Open</button>`
             }
         </div>
     `;
@@ -331,7 +353,8 @@ async function updateProject(projectName) {
 }
 
 async function testProject(projectName) {
-    addLog(`Running tests for ${projectName}...`, 'info');
+    // Don't add to recent activity - this is a build/test operation
+    // Start the operation (non-blocking)
     try {
         const response = await fetch(`/api/projects/${projectName}/test`, {
             method: 'POST',
@@ -340,20 +363,26 @@ async function testProject(projectName) {
         const result = await response.json();
         
         if (result.success) {
-            addLog(`Tests completed for ${projectName}`, 'success');
-            if (result.data) {
-                addLog(result.data, 'info');
-            }
+            // Initialize operation status
+            projectOperationStatus[projectName] = { type: 'test', running: true };
+            projectLogs[projectName] = [];
+            
+            // Update UI to show running status
+            updateProjectCardOperationStatus(projectName);
+            
+            // Start streaming logs
+            startProjectOperationStream(projectName, 'test');
         } else {
-            addLog(`Tests failed for ${projectName}: ${result.message}`, 'error');
+            addLog(`Failed to start tests for ${projectName}: ${result.message}`, 'error');
         }
     } catch (error) {
-        addLog(`Error running tests for ${projectName}: ${error.message}`, 'error');
+        addLog(`Error starting tests for ${projectName}: ${error.message}`, 'error');
     }
 }
 
 async function buildProject(projectName) {
-    addLog(`Building ${projectName}...`, 'info');
+    // Don't add to recent activity - this is a build/test operation
+    // Start the operation (non-blocking)
     try {
         const response = await fetch(`/api/projects/${projectName}/build`, {
             method: 'POST',
@@ -362,15 +391,20 @@ async function buildProject(projectName) {
         const result = await response.json();
         
         if (result.success) {
-            addLog(`Build completed for ${projectName}`, 'success');
-            if (result.data) {
-                addLog(result.data, 'info');
-            }
+            // Initialize operation status
+            projectOperationStatus[projectName] = { type: 'build', running: true };
+            projectLogs[projectName] = [];
+            
+            // Update UI to show running status
+            updateProjectCardOperationStatus(projectName);
+            
+            // Start streaming logs
+            startProjectOperationStream(projectName, 'build');
         } else {
-            addLog(`Build failed for ${projectName}: ${result.message}`, 'error');
+            addLog(`Failed to start build for ${projectName}: ${result.message}`, 'error');
         }
     } catch (error) {
-        addLog(`Error building ${projectName}: ${error.message}`, 'error');
+        addLog(`Error starting build for ${projectName}: ${error.message}`, 'error');
     }
 }
 
@@ -599,6 +633,168 @@ function closeLogsModal() {
     logsPaused = false;
 }
 
+let projectEventSources = {}; // Track event sources per project
+let currentProjectLogs = null;
+
+function startProjectOperationStream(projectName, operationType) {
+    // Close any existing connection for this project
+    if (projectEventSources[projectName]) {
+        projectEventSources[projectName].close();
+        delete projectEventSources[projectName];
+    }
+    
+    // Initialize logs array if needed
+    if (!projectLogs[projectName]) {
+        projectLogs[projectName] = [];
+    }
+    
+    // Create EventSource connection
+    const eventSource = new EventSource(`/api/projects/${projectName}/${operationType}/stream`);
+    projectEventSources[projectName] = eventSource;
+    
+    // Handle incoming log messages
+    eventSource.onmessage = (event) => {
+        const line = event.data;
+        projectLogs[projectName].push(line);
+        
+        // If logs modal is open for this project, update it
+        if (currentProjectLogs === projectName) {
+            const logsContent = document.getElementById('project-logs-content');
+            if (logsContent) {
+                if (logsContent.textContent === 'Connecting...' || logsContent.textContent === '') {
+                    logsContent.textContent = line;
+                } else {
+                    logsContent.textContent += '\n' + line;
+                }
+                logsContent.scrollTop = logsContent.scrollHeight;
+            }
+        }
+        
+        // Check if operation completed
+        if (line.includes('[COMPLETE]')) {
+            projectOperationStatus[projectName].running = false;
+            projectOperationStatus[projectName].completed = true;
+            updateProjectCardOperationStatus(projectName);
+            eventSource.close();
+            delete projectEventSources[projectName];
+        }
+    };
+    
+    // Handle connection errors
+    eventSource.onerror = (error) => {
+        if (eventSource.readyState === EventSource.CLOSED) {
+            projectOperationStatus[projectName].running = false;
+            updateProjectCardOperationStatus(projectName);
+            delete projectEventSources[projectName];
+        }
+    };
+}
+
+function updateProjectCardOperationStatus(projectName) {
+    const card = document.getElementById(`project-card-${projectName}`);
+    if (!card) {
+        // Card might not be loaded yet, reload projects
+        loadProjects();
+        return;
+    }
+    
+    const operationStatus = projectOperationStatus[projectName] || { type: null, running: false, completed: false };
+    
+    // Update operation status badge
+    let statusBadge = card.querySelector('.operation-status');
+    if (operationStatus.running) {
+        if (!statusBadge) {
+            const cardInfo = card.querySelector('.card-info');
+            statusBadge = document.createElement('div');
+            statusBadge.className = 'card-info-item operation-status';
+            cardInfo.appendChild(statusBadge);
+        }
+        statusBadge.innerHTML = `
+            <span class="operation-badge ${operationStatus.type === 'test' ? 'operation-test' : 'operation-build'}">
+                ${operationStatus.type === 'test' ? 'Testing...' : 'Building...'}
+            </span>
+        `;
+    } else if (operationStatus.completed) {
+        // Show completed status briefly, then remove
+        if (!statusBadge) {
+            const cardInfo = card.querySelector('.card-info');
+            statusBadge = document.createElement('div');
+            statusBadge.className = 'card-info-item operation-status';
+            cardInfo.appendChild(statusBadge);
+        }
+        const success = projectLogs[projectName] && projectLogs[projectName].some(log => log.includes('[COMPLETE]') && log.includes('successfully'));
+        statusBadge.innerHTML = `
+            <span class="operation-badge ${success ? 'status-ok' : 'status-error'}" style="animation: none;">
+                ${operationStatus.type === 'test' ? 'Test' : 'Build'} ${success ? 'Completed' : 'Failed'}
+            </span>
+        `;
+        // Remove status badge after 3 seconds
+        setTimeout(() => {
+            if (statusBadge && statusBadge.parentNode) {
+                statusBadge.remove();
+            }
+            // Clear completed flag
+            if (projectOperationStatus[projectName]) {
+                projectOperationStatus[projectName].completed = false;
+            }
+        }, 3000);
+    } else {
+        if (statusBadge) {
+            statusBadge.remove();
+        }
+    }
+    
+    // Update buttons
+    const buttons = card.querySelectorAll('.card-actions button');
+    buttons.forEach(btn => {
+        if (btn.onclick && (btn.onclick.toString().includes('testProject') || 
+            btn.onclick.toString().includes('buildProject') ||
+            btn.onclick.toString().includes('updateProject') ||
+            btn.onclick.toString().includes('openProjectInEditor'))) {
+            btn.disabled = operationStatus.running;
+        }
+    });
+    
+    // Show view logs button if operation is running or has logs
+    const viewLogsBtn = document.getElementById(`view-logs-${projectName}`);
+    if (viewLogsBtn) {
+        const hasLogs = projectLogs[projectName] && projectLogs[projectName].length > 0;
+        viewLogsBtn.style.display = (operationStatus.running || hasLogs) ? 'inline-block' : 'none';
+    }
+}
+
+function viewProjectLogs(projectName) {
+    currentProjectLogs = projectName;
+    const modal = document.getElementById('project-logs-modal');
+    const modalTitle = document.getElementById('project-logs-modal-title');
+    const logsContent = document.getElementById('project-logs-content');
+    
+    const operationStatus = projectOperationStatus[projectName] || { type: null, running: false };
+    const operationType = operationStatus.type === 'test' ? 'Test' : operationStatus.type === 'build' ? 'Build' : 'Operation';
+    
+    modalTitle.textContent = `${projectName} - ${operationType} Logs`;
+    modal.style.display = 'flex';
+    
+    // Display existing logs
+    if (projectLogs[projectName] && projectLogs[projectName].length > 0) {
+        logsContent.textContent = projectLogs[projectName].join('\n');
+        logsContent.scrollTop = logsContent.scrollHeight;
+    } else {
+        logsContent.textContent = 'No logs yet. Waiting for output...';
+    }
+    
+    // If operation is running and we don't have a stream, start it
+    if (operationStatus.running && !projectEventSources[projectName]) {
+        startProjectOperationStream(projectName, operationStatus.type);
+    }
+}
+
+function closeProjectLogsModal() {
+    const modal = document.getElementById('project-logs-modal');
+    modal.style.display = 'none';
+    currentProjectLogs = null;
+}
+
 // Make functions available globally
 window.updateProject = updateProject;
 window.testProject = testProject;
@@ -615,3 +811,5 @@ window.refreshServiceLogs = refreshServiceLogs;
 window.toggleLogsPause = toggleLogsPause;
 window.openProjectInEditor = openProjectInEditor;
 window.cloneProject = cloneProject;
+window.viewProjectLogs = viewProjectLogs;
+window.closeProjectLogsModal = closeProjectLogsModal;

@@ -126,6 +126,12 @@ func handleProjectAction(w http.ResponseWriter, r *http.Request) {
 	projectName := parts[0]
 	action := parts[1]
 
+	// Handle streaming requests for build/test operations
+	if (action == "test" || action == "build") && len(parts) >= 3 && parts[2] == "stream" && r.Method == http.MethodGet {
+		handleProjectOperationStream(w, r, projectName, action)
+		return
+	}
+
 	projectDir := filepath.Join(devkitRoot, "projects", projectName)
 
 	// Allow "clone" action to proceed even if directory doesn't exist
@@ -177,13 +183,39 @@ func handleProjectAction(w http.ResponseWriter, r *http.Request) {
 		cmd = exec.Command("git", "submodule", "update", "--remote", projectName)
 		cmd.Dir = devkitRoot
 	case "test":
-		cmd = exec.Command("make", "test")
-		cmd.Dir = projectDir
+		// Ensure dependencies are generated before running tests
+		// wabisaby-core depends on wabisaby-protos, so generate protos first
+		if projectName == "wabisaby-core" {
+			protosDir := filepath.Join(devkitRoot, "projects", "wabisaby-protos")
+			if _, err := os.Stat(protosDir); err == nil {
+				// Always generate protos to ensure they're up to date
+				// This is fast and ensures consistency
+				protoCmd := exec.Command("make", "proto")
+				protoCmd.Dir = protosDir
+				if err := protoCmd.Run(); err != nil {
+					log.Printf("Warning: Failed to generate protos before test: %v", err)
+					// Continue anyway - maybe they're already generated
+				}
+			}
+		}
+		
+		// For non-streaming requests, return immediately with success
+		// The frontend will handle streaming separately
+		sendJSON(w, Response{
+			Success: true,
+			Message: fmt.Sprintf("Starting test for %s", projectName),
+		})
+		return
 	case "build":
-		cmd = exec.Command("make", "build")
-		cmd.Dir = projectDir
+		// For non-streaming requests, return immediately with success
+		// The frontend will handle streaming separately
+		sendJSON(w, Response{
+			Success: true,
+			Message: fmt.Sprintf("Starting build for %s", projectName),
+		})
+		return
 	case "open":
-		// Open project in editor (Cursor preferred, fallback to VSCode)
+		// Open all projects in a single workspace (Cursor preferred, fallback to VSCode)
 		editor, err := detectEditor()
 		if err != nil {
 			log.Printf("Editor detection failed: %v", err)
@@ -194,7 +226,18 @@ func handleProjectAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("Opening %s in %s (path: %s)", projectName, editor, projectDir)
+		// Generate workspace file with all cloned projects
+		workspaceFile, err := generateWorkspaceFile()
+		if err != nil {
+			log.Printf("Failed to generate workspace file: %v", err)
+			sendJSON(w, Response{
+				Success: false,
+				Message: fmt.Sprintf("Failed to generate workspace file: %s", err.Error()),
+			})
+			return
+		}
+
+		log.Printf("Opening workspace in %s (workspace file: %s)", editor, workspaceFile)
 
 		// Use macOS 'open' command if available, otherwise use direct command
 		if runtime.GOOS == "darwin" {
@@ -203,20 +246,20 @@ func handleProjectAction(w http.ResponseWriter, r *http.Request) {
 			var openCmd *exec.Cmd
 			if editor == "cursor" {
 				// Try Cursor app name first
-				openCmd = exec.Command("open", "-a", "Cursor", projectDir)
+				openCmd = exec.Command("open", "-a", "Cursor", workspaceFile)
 			} else if editor == "code" {
 				// Try Visual Studio Code app name
-				openCmd = exec.Command("open", "-a", "Visual Studio Code", projectDir)
+				openCmd = exec.Command("open", "-a", "Visual Studio Code", workspaceFile)
 			}
 
 			if openCmd != nil {
 				// Try the 'open' command first
 				err = openCmd.Run()
 				if err == nil {
-					log.Printf("Successfully opened %s using 'open' command", projectName)
+					log.Printf("Successfully opened workspace using 'open' command")
 					sendJSON(w, Response{
 						Success: true,
-						Message: fmt.Sprintf("Opening %s in %s", projectName, editor),
+						Message: fmt.Sprintf("Opening workspace in %s", editor),
 					})
 					return
 				}
@@ -226,7 +269,7 @@ func handleProjectAction(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Use direct editor command (works on all platforms)
-		cmd = exec.Command(editor, projectDir)
+		cmd = exec.Command(editor, workspaceFile)
 
 		// Detach the process from the parent on Unix systems
 		if runtime.GOOS != "windows" {
@@ -246,7 +289,7 @@ func handleProjectAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("Editor command started successfully for %s", projectName)
+		log.Printf("Editor command started successfully for workspace")
 
 		// Detach from the process so it doesn't get killed when HTTP request completes
 		go func() {
@@ -255,7 +298,7 @@ func handleProjectAction(w http.ResponseWriter, r *http.Request) {
 
 		sendJSON(w, Response{
 			Success: true,
-			Message: fmt.Sprintf("Opening %s in %s", projectName, editor),
+			Message: fmt.Sprintf("Opening workspace in %s", editor),
 		})
 		return
 	default:
@@ -277,6 +320,176 @@ func handleProjectAction(w http.ResponseWriter, r *http.Request) {
 		Message: fmt.Sprintf("%s completed successfully", action),
 		Data:    string(output),
 	})
+}
+
+func handleProjectOperationStream(w http.ResponseWriter, r *http.Request, projectName, action string) {
+	projectDir := filepath.Join(devkitRoot, "projects", projectName)
+
+	// Check if project exists
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		http.Error(w, "Project not found", http.StatusNotFound)
+		return
+	}
+	
+	// Set SSE headers first (before any output)
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	// Ensure we can flush
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
+		return
+	}
+
+	// Ensure dependencies are generated before running tests
+	// wabisaby-core depends on wabisaby-protos, so generate protos first
+	if projectName == "wabisaby-core" && action == "test" {
+		protosDir := filepath.Join(devkitRoot, "projects", "wabisaby-protos")
+		if _, err := os.Stat(protosDir); err == nil {
+			// Send message to client that we're generating protos
+			fmt.Fprintf(w, "data: [INFO] Generating protobuf code in wabisaby-protos...\n\n")
+			flusher.Flush()
+			
+			// Always generate protos to ensure they're up to date
+			// This is fast and ensures consistency
+			protoCmd := exec.Command("make", "proto")
+			protoCmd.Dir = protosDir
+			protoOutput, err := protoCmd.CombinedOutput()
+			if err != nil {
+				// Log the full error for debugging
+				log.Printf("Failed to generate protos: %v, output: %s", err, string(protoOutput))
+				fmt.Fprintf(w, "data: [WARNING] Failed to generate protos: %s\n\n", string(protoOutput))
+				flusher.Flush()
+				// Don't continue if proto generation fails - tests will fail anyway
+				fmt.Fprintf(w, "data: [ERROR] Cannot run tests without generated protobuf code. Please run 'make proto' in wabisaby-protos first.\n\n")
+				flusher.Flush()
+				return
+			} else {
+				fmt.Fprintf(w, "data: [INFO] Protobuf code generated successfully\n\n")
+				flusher.Flush()
+			}
+		} else {
+			log.Printf("wabisaby-protos directory not found at %s", protosDir)
+			fmt.Fprintf(w, "data: [WARNING] wabisaby-protos directory not found. Tests may fail.\n\n")
+			flusher.Flush()
+		}
+	}
+
+	// Determine command based on action
+	var cmd *exec.Cmd
+	switch action {
+	case "test":
+		cmd = exec.Command("make", "test")
+	case "build":
+		cmd = exec.Command("make", "build")
+	default:
+		fmt.Fprintf(w, "data: Error: Unknown action %s\n\n", action)
+		flusher.Flush()
+		return
+	}
+
+	cmd.Dir = projectDir
+
+	// Set up pipes
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		fmt.Fprintf(w, "data: Error: %s\n\n", err.Error())
+		flusher.Flush()
+		return
+	}
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		fmt.Fprintf(w, "data: Error: %s\n\n", err.Error())
+		flusher.Flush()
+		return
+	}
+
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		fmt.Fprintf(w, "data: Error starting command: %s\n\n", err.Error())
+		flusher.Flush()
+		return
+	}
+
+	// Monitor client disconnect
+	ctx := r.Context()
+	done := make(chan bool)
+	var exitCode int
+
+	// Read stdout line by line
+	go func() {
+		defer func() {
+			done <- true
+		}()
+
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			line := scanner.Text()
+			// Send as SSE event
+			fmt.Fprintf(w, "data: %s\n\n", line)
+			flusher.Flush()
+
+			// Check if client disconnected
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			fmt.Fprintf(w, "data: Error reading output: %s\n\n", err.Error())
+			flusher.Flush()
+		}
+	}()
+
+	// Read stderr
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			line := scanner.Text()
+			fmt.Fprintf(w, "data: [ERROR] %s\n\n", line)
+			flusher.Flush()
+
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+		}
+	}()
+
+	// Wait for command completion or client disconnect
+	go func() {
+		err := cmd.Wait()
+		if err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+		}
+		done <- true
+	}()
+
+	// Wait for client disconnect or command completion
+	select {
+	case <-ctx.Done():
+		// Client disconnected, kill the command
+		cmd.Process.Kill()
+		cmd.Wait()
+	case <-done:
+		// Command completed
+		if exitCode == 0 {
+			fmt.Fprintf(w, "data: [COMPLETE] Operation completed successfully\n\n")
+		} else {
+			fmt.Fprintf(w, "data: [COMPLETE] Operation failed with exit code %d\n\n", exitCode)
+		}
+		flusher.Flush()
+		cmd.Wait()
+	}
 }
 
 func handleServices(w http.ResponseWriter, r *http.Request) {
@@ -620,6 +833,55 @@ func detectEditor() (string, error) {
 	return "", fmt.Errorf("neither 'cursor' nor 'code' command found in PATH")
 }
 
+func generateWorkspaceFile() (string, error) {
+	// Define the workspace file path
+	workspaceFile := filepath.Join(devkitRoot, "wabisaby-devkit.code-workspace")
+
+	// Scan projects directory for cloned projects
+	projectsDir := filepath.Join(devkitRoot, "projects")
+	entries, err := os.ReadDir(projectsDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to read projects directory: %v", err)
+	}
+
+	// Build list of folders for cloned projects
+	var folders []map[string]string
+	for _, entry := range entries {
+		if entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
+			projectPath := filepath.Join(projectsDir, entry.Name())
+			// Check if it's actually a valid project directory (has some content)
+			if info, err := os.Stat(projectPath); err == nil && info.IsDir() {
+				// Use relative path from devkit root
+				relativePath := filepath.Join("projects", entry.Name())
+				folders = append(folders, map[string]string{
+					"path": relativePath,
+				})
+			}
+		}
+	}
+
+	// Create workspace structure
+	workspace := map[string]interface{}{
+		"folders":  folders,
+		"settings": map[string]interface{}{},
+	}
+
+	// Marshal to JSON with indentation
+	workspaceJSON, err := json.MarshalIndent(workspace, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal workspace JSON: %v", err)
+	}
+
+	// Write workspace file
+	err = os.WriteFile(workspaceFile, workspaceJSON, 0644)
+	if err != nil {
+		return "", fmt.Errorf("failed to write workspace file: %v", err)
+	}
+
+	log.Printf("Generated workspace file: %s with %d projects", workspaceFile, len(folders))
+	return workspaceFile, nil
+}
+
 func initializeSubmodule(projectName string) error {
 	// Check if we're in a git repository
 	gitDir := filepath.Join(devkitRoot, ".git")
@@ -659,7 +921,7 @@ func initializeSubmodule(projectName string) error {
 	cmd.Dir = devkitRoot
 	statusOutput, _ := cmd.CombinedOutput()
 	log.Printf("Current submodule status: %s", string(statusOutput))
-	
+
 	// If submodule status is empty, the submodules might not be in git's index
 	// Try to add them using git submodule add (but only if they're not already there)
 	if len(strings.TrimSpace(string(statusOutput))) == 0 {
@@ -691,7 +953,7 @@ func initializeSubmodule(projectName string) error {
 	// In this case, we need to manually clone the repository
 	if len(strings.TrimSpace(string(statusOutput))) == 0 {
 		log.Printf("No submodules registered in git. Manually cloning repository...")
-		
+
 		// Get the URL from .gitmodules
 		urlCmd := exec.Command("git", "config", "--file", ".gitmodules", "--get", fmt.Sprintf("submodule.%s.url", projectName))
 		urlCmd.Dir = devkitRoot
@@ -701,7 +963,7 @@ func initializeSubmodule(projectName string) error {
 		}
 		submoduleURL := strings.TrimSpace(string(urlOutput))
 		log.Printf("Found submodule URL: %s", submoduleURL)
-		
+
 		// Manually clone the repository
 		cloneCmd := exec.Command("git", "clone", submoduleURL, projectDir)
 		cloneOutput, cloneErr := cloneCmd.CombinedOutput()
@@ -712,13 +974,13 @@ func initializeSubmodule(projectName string) error {
 	} else {
 		// Submodules are registered, use normal git submodule commands
 		submodulePath := filepath.Join("projects", projectName)
-		
+
 		// Try to update/init the specific submodule
 		cmd = exec.Command("git", "submodule", "update", "--init", submodulePath)
 		cmd.Dir = devkitRoot
 		output, err := cmd.CombinedOutput()
 		log.Printf("git submodule update --init %s: output=%s, error=%v", submodulePath, string(output), err)
-		
+
 		if err != nil {
 			log.Printf("Failed to initialize specific submodule %s at path %s: %s. Trying all submodules...", projectName, submodulePath, string(output))
 			// Fall back to initializing all submodules

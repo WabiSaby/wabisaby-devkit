@@ -48,3 +48,4 @@ temp/
 .idea/
 *.sublime-project
 *.sublime-workspace
+*.code-workspace

@@ -51,17 +51,40 @@ test_project() {
     fi
 }
 
+# Define dependency order: wabisaby-protos must run before projects that depend on it
+# This ensures protobuf code is generated before other projects try to use it
+DEPENDENCY_ORDER=(
+    "wabisaby-protos"
+    "wabisaby-plugin-sdk-go"
+    "wabisaby-core"
+    "wabisaby-plugins"
+)
+
 # Run tests
 if [ "$PARALLEL" = true ]; then
     log_info "Running tests in parallel..."
+    # Even in parallel, ensure wabisaby-protos runs first
+    test_project "wabisaby-protos"
+    # Then run others in parallel
     for project in "${PROJECTS[@]}"; do
-        test_project "$project" &
+        if [ "$project" != "wabisaby-protos" ]; then
+            test_project "$project" &
+        fi
     done
     wait
 else
+    # Run in dependency order
+    for project in "${DEPENDENCY_ORDER[@]}"; do
+        if [[ " ${PROJECTS[@]} " =~ " ${project} " ]]; then
+            test_project "$project"
+        fi
+    done
+    # Run any remaining projects not in dependency order
     for project in "${PROJECTS[@]}"; do
-        test_project "$project"
-    fi
+        if [[ ! " ${DEPENDENCY_ORDER[@]} " =~ " ${project} " ]]; then
+            test_project "$project"
+        fi
+    done
 fi
 
 # Summary
