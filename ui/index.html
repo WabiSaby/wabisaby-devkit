@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WabiSaby DevKit Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>WabiSaby DevKit</h1>
+            <div class="header-actions">
+                <button id="refresh-btn" class="btn btn-primary">Refresh</button>
+                <button id="polling-toggle" class="btn btn-secondary">Enable Auto-refresh</button>
+                <button id="theme-toggle" class="btn btn-secondary">Toggle Theme</button>
+            </div>
+        </header>
+
+        <div class="dashboard">
+            <section class="projects-section">
+                <h2>Projects</h2>
+                <div id="projects-grid" class="projects-grid">
+                    <!-- Projects will be loaded here -->
+                </div>
+            </section>
+
+            <section class="services-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Services</h2>
+                    <div>
+                        <button class="btn btn-success" onclick="startAllServices()">Start All</button>
+                        <button class="btn btn-danger" onclick="stopAllServices()">Stop All</button>
+                    </div>
+                </div>
+                <div id="services-grid" class="services-grid">
+                    <!-- Services will be loaded here -->
+                </div>
+            </section>
+
+            <section class="logs-section">
+                <h2>Recent Activity</h2>
+                <div id="logs-container" class="logs-container">
+                    <div class="log-entry">Dashboard initialized</div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Logs Modal -->
+    <div id="logs-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <h2 id="logs-modal-title">Service Logs</h2>
+                    <span id="connection-status" class="connection-status connecting">Connecting...</span>
+                </div>
+                <button class="modal-close" onclick="closeLogsModal()">&times;</button>
+            </div>
+            <div id="logs-content" class="modal-logs"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="pause-logs-btn" onclick="toggleLogsPause()">Pause</button>
+                <button class="btn btn-primary" onclick="refreshServiceLogs()">Reconnect</button>
+                <button class="btn btn-secondary" onclick="closeLogsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

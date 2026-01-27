@@ -1,0 +1,12 @@
+[submodule "wabisaby-core"]
+	path = projects/wabisaby-core
+	url = https://github.com/WabiSaby/wabisaby-core.git
+[submodule "wabisaby-protos"]
+	path = projects/wabisaby-protos
+	url = https://github.com/WabiSaby/wabisaby-protos.git
+[submodule "wabisaby-plugin-sdk-go"]
+	path = projects/wabisaby-plugin-sdk-go
+	url = https://github.com/WabiSaby/wabisaby-plugin-sdk-go.git
+[submodule "wabisaby-plugins"]
+	path = projects/wabisaby-plugins
+	url = https://github.com/WabiSaby/wabisaby-plugins.git
