@@ -4,14 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WabiSaby DevKit Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
     <div class="container">
         <header>
             <h1>WabiSaby DevKit</h1>
             <div class="header-actions">
-                <button id="refresh-btn" class="btn btn-primary">Refresh</button>
+                <button id="refresh-btn" class="btn btn-primary">
+                    <span class="icon icon-sm">🔄</span>
+                    Refresh
+                </button>
                 <button id="polling-toggle" class="btn btn-secondary">Enable Auto-refresh</button>
                 <button id="theme-toggle" class="btn btn-secondary">Toggle Theme</button>
             </div>
@@ -26,9 +29,9 @@
             </section>
 
             <section class="services-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
                     <h2>Services</h2>
-                    <div>
+                    <div style="display: flex; gap: var(--spacing-sm);">
                         <button class="btn btn-success" onclick="startAllServices()">Start All</button>
                         <button class="btn btn-danger" onclick="stopAllServices()">Stop All</button>
                     </div>
@@ -51,11 +54,11 @@
     <div id="logs-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
                     <h2 id="logs-modal-title">Service Logs</h2>
                     <span id="connection-status" class="connection-status connecting">Connecting...</span>
                 </div>
-                <button class="modal-close" onclick="closeLogsModal()">&times;</button>
+                <button class="modal-close">&times;</button>
             </div>
             <div id="logs-content" class="modal-logs"></div>
             <div class="modal-footer">
@@ -67,11 +70,11 @@
     </div>
 
     <!-- Project Build/Test Logs Modal -->
-    <div id="project-logs-modal" class="modal" onclick="if(event.target === this) closeProjectLogsModal()">
+    <div id="project-logs-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="project-logs-modal-title">Project Logs</h2>
-                <button class="modal-close" onclick="closeProjectLogsModal()">&times;</button>
+                <button class="modal-close">&times;</button>
             </div>
             <div id="project-logs-content" class="modal-logs"></div>
             <div class="modal-footer">
@@ -80,6 +83,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

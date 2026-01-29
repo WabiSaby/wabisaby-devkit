@@ -1,7 +1,7 @@
 # WabiSaby DevKit Makefile
 # Convenience commands for DevKit management
 
-.PHONY: help status update sync test build format lint setup ui docker-up docker-down docker-status clean
+.PHONY: help status update sync test build format lint setup start docker-up docker-down docker-status clean
 
 # Default target
 help:
@@ -15,7 +15,7 @@ help:
 	@echo "  make format       - Format code in all projects"
 	@echo "  make lint         - Lint all projects"
 	@echo "  make setup        - Initial development setup"
-	@echo "  make ui           - Start web dashboard"
+	@echo "  make start        - Start web dashboard"
 	@echo "  make docker-up    - Start Docker services"
 	@echo "  make docker-down  - Stop Docker services"
 	@echo "  make docker-status - Show Docker service status"
@@ -51,16 +51,10 @@ lint:
 setup:
 	@./scripts/dev-setup.sh
 
-# Web dashboard
-ui:
-	@echo "Starting DevKit dashboard..."
-	@echo "Open http://localhost:8080 in your browser"
-	@cd ui && go run server.go
-
 start:
 	@echo "Starting DevKit dashboard..."
 	@echo "Open http://localhost:8080 in your browser"
-	@cd ui && go run server.go
+	@cd dashboard && go run ./cmd/server
 
 # Docker services
 docker-up:

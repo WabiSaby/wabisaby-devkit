@@ -198,7 +198,7 @@ func handleProjectAction(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		
+
 		// For non-streaming requests, return immediately with success
 		// The frontend will handle streaming separately
 		sendJSON(w, Response{
@@ -330,7 +330,7 @@ func handleProjectOperationStream(w http.ResponseWriter, r *http.Request, projec
 		http.Error(w, "Project not found", http.StatusNotFound)
 		return
 	}
-	
+
 	// Set SSE headers first (before any output)
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -352,7 +352,7 @@ func handleProjectOperationStream(w http.ResponseWriter, r *http.Request, projec
 			// Send message to client that we're generating protos
 			fmt.Fprintf(w, "data: [INFO] Generating protobuf code in wabisaby-protos...\n\n")
 			flusher.Flush()
-			
+
 			// Always generate protos to ensure they're up to date
 			// This is fast and ensures consistency
 			protoCmd := exec.Command("make", "proto")
