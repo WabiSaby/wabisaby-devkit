@@ -29,9 +29,9 @@ export async function loadServices() {
             });
         }
     } catch (error) {
-        console.error('Failed to load services:', error);
-        addLog('Failed to load services', 'error');
-        grid.innerHTML = '<div class="log-entry error">Failed to load services</div>';
+        console.error('Failed to load infrastructure:', error);
+        addLog('Failed to load infrastructure', 'error');
+        grid.innerHTML = '<div class="log-entry error">Failed to load infrastructure</div>';
     }
 }
 

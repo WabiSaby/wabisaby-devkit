@@ -16,7 +16,7 @@
                     Refresh
                 </button>
                 <button id="polling-toggle" class="btn btn-secondary">Enable Auto-refresh</button>
-                <button id="theme-toggle" class="btn btn-secondary">Toggle Theme</button>
+                <button id="theme-toggle" type="button" class="btn btn-secondary btn-icon-only btn-theme-toggle" aria-label="Switch theme" title="Switch theme"></button>
             </div>
         </header>
 
@@ -30,14 +30,14 @@
 
             <section class="services-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
-                    <h2>Services</h2>
+                    <h2>Infrastructure</h2>
                     <div style="display: flex; gap: var(--spacing-sm);">
                         <button class="btn btn-success" onclick="startAllServices()">Start All</button>
                         <button class="btn btn-danger" onclick="stopAllServices()">Stop All</button>
                     </div>
                 </div>
                 <div id="services-grid" class="services-grid">
-                    <!-- Services will be loaded here -->
+                    <!-- Infrastructure services will be loaded here -->
                 </div>
             </section>
 

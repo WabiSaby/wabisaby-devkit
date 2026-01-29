@@ -114,6 +114,36 @@
     vertical-align: middle;
 }
 
+/* Theme toggle – icon-only button */
+.btn-icon-only {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    min-width: 40px;
+}
+
+.btn-theme-toggle {
+    border-radius: var(--radius-md);
+}
+
+.btn-theme-toggle .theme-icon {
+    display: block;
+    margin: 0 auto;
+    transition: transform var(--transition-fast);
+}
+
+.btn-theme-toggle:hover .theme-icon {
+    transform: rotate(15deg) scale(1.05);
+}
+
+.btn-theme-toggle[data-theme-current="dark"] .theme-icon {
+    transform: rotate(-15deg);
+}
+
+.btn-theme-toggle[data-theme-current="dark"]:hover .theme-icon {
+    transform: rotate(0deg) scale(1.05);
+}
+
 /* Cards */
 .project-card,
 .service-card {
