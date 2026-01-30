@@ -1,8 +1,10 @@
 // App bootstrap: action registry and event delegation
 
-import { loadProjects, cloneProject, updateProject, testProject, buildProject, openProjectInEditor, viewProjectLogs, closeProjectLogsModal, openCreateTagModal, submitCreateTagForm, closeCreateTagModal } from './projects.js';
+import { loadProjects, cloneProject, updateProject, testProject, buildProject, formatProject, lintProject, openProjectInEditor, viewProjectLogs, closeProjectLogsModal, openCreateTagModal, submitCreateTagForm, closeCreateTagModal, runBulkAction } from './projects.js';
 import { loadServices, checkService, startService, stopService, startAllServices, stopAllServices, viewServiceLogs, refreshServiceLogs, toggleLogsPause, closeLogsModal, cleanupLogsModal } from './services.js';
+import { loadBackendServices, startBackendService, stopBackendService, startBackendGroup, stopBackendGroup, viewBackendServiceLogs, refreshBackendServiceLogs, toggleBackendLogsPause, closeBackendLogsModal, cleanupBackendLogsModal, loadMigrationStatus, runMigrationUp, runMigrationDown, closeMigrationModal, loadEnvStatus, copyEnvExample } from './backend.js';
 import { addLog } from './logs.js';
+import { submoduleAPI } from './api.js';
 import { initUI, themeManager, pollingManager } from './ui.js';
 import { initModals, modalManager } from './components/modal.js';
 import { createIcon } from './utils.js';
@@ -42,6 +44,7 @@ function getPayloadFromElement(el) {
     if (el.dataset.port !== undefined) payload.port = el.dataset.port;
     if (el.dataset.modalId) payload.modalId = el.dataset.modalId;
     if (el.dataset.commit !== undefined) payload.commit = el.dataset.commit;
+    if (el.dataset.group) payload.group = el.dataset.group;
     return payload;
 }
 
@@ -128,7 +131,25 @@ function registerAllActions() {
     registerAction('dashboard:refresh', () => {
         loadProjects();
         loadServices();
+        loadBackendServices();
+        loadMigrationStatus();
+        loadEnvStatus();
+        loadSyncStatus();
         addLog('Refreshed dashboard', 'success');
+    });
+    registerAction('dashboard:sync', async () => {
+        try {
+            const result = await submoduleAPI.sync();
+            if (result.success) {
+                addLog(result.message || 'Submodules synced to DevKit', 'success');
+                loadSyncStatus();
+                loadProjects();
+            } else {
+                addLog(result.message || 'Sync failed', 'error');
+            }
+        } catch (error) {
+            addLog('Sync failed: ' + error.message, 'error');
+        }
     });
     registerAction('dashboard:polling', () => {
         const enabled = pollingManager.toggle(() => {
@@ -144,9 +165,15 @@ function registerAllActions() {
     registerAction('project:update', (p) => updateProject(p.project));
     registerAction('project:test', (p) => testProject(p.project));
     registerAction('project:build', (p) => buildProject(p.project));
+    registerAction('project:format', (p) => formatProject(p.project));
+    registerAction('project:lint', (p) => lintProject(p.project));
     registerAction('project:open', (p) => openProjectInEditor(p.project));
     registerAction('project:viewLogs', (p) => viewProjectLogs(p.project));
     registerAction('project:createTag', (p) => openCreateTagModal(p.project, p.commit || '-'));
+    registerAction('project:bulkFormat', () => runBulkAction('format'));
+    registerAction('project:bulkLint', () => runBulkAction('lint'));
+    registerAction('project:bulkTest', () => runBulkAction('test'));
+    registerAction('project:bulkBuild', () => runBulkAction('build'));
 
     // Service actions
     registerAction('service:start', (p) => startService(p.service));
@@ -162,6 +189,8 @@ function registerAllActions() {
         if (p.modalId === 'logs-modal') closeLogsModal();
         else if (p.modalId === 'project-logs-modal') closeProjectLogsModal();
         else if (p.modalId === 'create-tag-modal') closeCreateTagModal();
+        else if (p.modalId === 'backend-logs-modal') closeBackendLogsModal();
+        else if (p.modalId === 'migration-modal') closeMigrationModal();
         else modalManager.hide(p.modalId);
     });
 
@@ -171,6 +200,24 @@ function registerAllActions() {
 
     // Create tag form
     registerAction('project:submitCreateTag', () => submitCreateTagForm());
+
+    // Backend (WabiSaby-Go) service actions
+    registerAction('backend:start', (p) => startBackendService(p.service));
+    registerAction('backend:stop', (p) => stopBackendService(p.service));
+    registerAction('backend:startGroup', (p) => startBackendGroup(p.group));
+    registerAction('backend:stopGroup', (p) => stopBackendGroup(p.group));
+    registerAction('backend:viewLogs', (p) => viewBackendServiceLogs(p.service));
+
+    // Backend logs modal actions
+    registerAction('backend-logs:pause', () => toggleBackendLogsPause());
+    registerAction('backend-logs:refresh', () => refreshBackendServiceLogs());
+
+    // Migration actions
+    registerAction('migration:up', () => runMigrationUp());
+    registerAction('migration:down', () => runMigrationDown());
+
+    // Environment actions
+    registerAction('env:copyExample', () => copyEnvExample());
 }
 
 /**
@@ -189,6 +236,7 @@ export function init() {
     initUI();
     initModals();
     modalManager.setOnHide('logs-modal', cleanupLogsModal);
+    modalManager.setOnHide('backend-logs-modal', cleanupBackendLogsModal);
 
     const refreshIconEl = document.getElementById('refresh-icon');
     if (refreshIconEl) {
@@ -199,5 +247,27 @@ export function init() {
 
     loadProjects();
     loadServices();
+    loadBackendServices();
+    loadMigrationStatus();
+    loadEnvStatus();
+    loadSyncStatus();
     addLog('Dashboard initialized', 'success');
+}
+
+/**
+ * Fetch submodule sync status and show/hide the sync banner.
+ */
+async function loadSyncStatus() {
+    const banner = document.getElementById('sync-banner');
+    if (!banner) return;
+    try {
+        const result = await submoduleAPI.getSyncStatus();
+        if (result.success && result.data && result.data.needsSync && result.data.needsSync.length > 0) {
+            banner.classList.remove('is-hidden');
+        } else {
+            banner.classList.add('is-hidden');
+        }
+    } catch {
+        banner.classList.add('is-hidden');
+    }
 }

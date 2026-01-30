@@ -147,3 +147,67 @@ func PushTag(dir, tagName string) error {
 	}
 	return nil
 }
+
+// SubmoduleSyncStatus returns project names whose HEAD differs from the commit recorded in devkitRoot.
+// Submodule path is assumed to be "projects/<name>".
+func SubmoduleSyncStatus(devkitRoot string, projectNames []string) (needsSync []string, err error) {
+	for _, name := range projectNames {
+		projectDir := filepath.Join(devkitRoot, "projects", name)
+		if _, err := filepath.Abs(projectDir); err != nil {
+			continue
+		}
+		submodulePath := filepath.Join("projects", name)
+		headCmd := exec.Command("git", "rev-parse", "HEAD")
+		headCmd.Dir = projectDir
+		headOut, err := headCmd.Output()
+		if err != nil {
+			continue
+		}
+		submoduleHEAD := strings.TrimSpace(string(headOut))
+		lsTreeCmd := exec.Command("git", "ls-tree", "HEAD", submodulePath)
+		lsTreeCmd.Dir = devkitRoot
+		treeOut, err := lsTreeCmd.Output()
+		if err != nil {
+			needsSync = append(needsSync, name)
+			continue
+		}
+		fields := strings.Fields(string(treeOut))
+		if len(fields) < 3 {
+			needsSync = append(needsSync, name)
+			continue
+		}
+		recordedCommit := fields[2]
+		if submoduleHEAD != recordedCommit {
+			needsSync = append(needsSync, name)
+		}
+	}
+	return needsSync, nil
+}
+
+// SubmoduleSync stages submodule refs in devkitRoot and commits with the given message.
+func SubmoduleSync(devkitRoot string, projectNames []string, commitMessage string) error {
+	if len(projectNames) == 0 {
+		return nil
+	}
+	for _, name := range projectNames {
+		submodulePath := filepath.Join("projects", name)
+		cmd := exec.Command("git", "add", submodulePath)
+		cmd.Dir = devkitRoot
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("git add %s: %w (%s)", submodulePath, err, strings.TrimSpace(string(out)))
+		}
+	}
+	if commitMessage == "" {
+		commitMessage = "Update submodules: " + strings.Join(projectNames, ", ")
+	}
+	cmd := exec.Command("git", "commit", "-m", commitMessage)
+	cmd.Dir = devkitRoot
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(output), "nothing to commit") {
+			return nil
+		}
+		return fmt.Errorf("git commit: %w (%s)", err, strings.TrimSpace(string(output)))
+	}
+	return nil
+}

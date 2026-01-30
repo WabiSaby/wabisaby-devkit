@@ -51,10 +51,13 @@ lint:
 setup:
 	@./scripts/dev-setup.sh
 
+# Dashboard default port (must match dashboard/internal/config.DefaultPort)
+DASHBOARD_PORT ?= 8081
+
 start:
 	@echo "Starting DevKit dashboard..."
-	@echo "Open http://localhost:8080 in your browser"
-	@cd dashboard && go run ./cmd/server
+	@echo "Open http://localhost:$(DASHBOARD_PORT) in your browser"
+	@cd dashboard && PORT=$(DASHBOARD_PORT) go run ./cmd/server
 
 # Docker services
 docker-up:

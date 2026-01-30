@@ -95,6 +95,8 @@ export function createProjectCard(project, operationStatus = null) {
             { label: 'Update', action: 'project:update', icon: 'refresh', payload: { project: project.name } },
             { label: 'Run tests', action: 'project:test', icon: 'play', payload: { project: project.name } },
             { label: 'Build', action: 'project:build', icon: 'build', payload: { project: project.name } },
+            { label: 'Format', action: 'project:format', icon: 'format', payload: { project: project.name } },
+            { label: 'Lint', action: 'project:lint', icon: 'lint', payload: { project: project.name } },
             { label: 'Create release tag', action: 'project:createTag', icon: 'tag', payload: { project: project.name, commit: project.commit || '-' } }
         ];
 
@@ -128,6 +130,8 @@ function getIconSvg(name) {
         refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>',
         play: '<path d="M8 5v14l11-7z" fill="currentColor"/>',
         build: '<path d="M11.414 10l-7.383 7.418a2.091 2.091 0 0 0 0 2.967 2.11 2.11 0 0 0 2.976 0l7.407-7.385"/><path d="M18.121 15.293l2.586-2.586a1 1 0 0 0 0-1.414l-7.586-7.586a1 1 0 0 0-1.414 0l-2.586 2.586a1 1 0 0 0 0 1.414l7.586 7.586a1 1 0 0 0 1.414 0"/>',
+        format: '<path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/>',
+        lint: '<path d="M9 12l2 2 4-4"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>',
         tag: '<path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/>',
         eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>'
     };
@@ -181,6 +185,17 @@ export function createServiceCard(service) {
     logsBtn.appendChild(createIcon('eye', 'icon icon-sm'));
     secondary.appendChild(refreshBtn);
     secondary.appendChild(logsBtn);
+    if (service.url) {
+        const openLink = document.createElement('a');
+        openLink.href = service.url;
+        openLink.target = '_blank';
+        openLink.rel = 'noopener noreferrer';
+        openLink.className = 'btn btn-secondary btn-icon-only';
+        openLink.setAttribute('aria-label', `Open ${service.name} UI`);
+        openLink.title = `Open ${service.name} (${service.url})`;
+        openLink.appendChild(createIcon('externalLink', 'icon icon-sm'));
+        secondary.appendChild(openLink);
+    }
 
     actions.appendChild(primary);
     actions.appendChild(secondary);

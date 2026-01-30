@@ -9,6 +9,7 @@ import { modalManager } from './components/modal.js';
 export const projectOperationStatus = {};
 export const projectLogs = {};
 const projectEventSources = {};
+let bulkEventSource = null;
 
 /**
  * Load projects
@@ -128,6 +129,46 @@ export async function buildProject(projectName) {
         }
     } catch (error) {
         addLog(`Error starting build for ${projectName}: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Format project
+ */
+export async function formatProject(projectName) {
+    try {
+        const result = await projectsAPI.format(projectName);
+        
+        if (result.success) {
+            projectOperationStatus[projectName] = { type: 'format', running: true };
+            projectLogs[projectName] = [];
+            updateProjectCardOperationStatus(projectName);
+            startProjectOperationStream(projectName, 'format');
+        } else {
+            addLog(`Failed to start format for ${projectName}: ${result.message}`, 'error');
+        }
+    } catch (error) {
+        addLog(`Error starting format for ${projectName}: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Lint project
+ */
+export async function lintProject(projectName) {
+    try {
+        const result = await projectsAPI.lint(projectName);
+        
+        if (result.success) {
+            projectOperationStatus[projectName] = { type: 'lint', running: true };
+            projectLogs[projectName] = [];
+            updateProjectCardOperationStatus(projectName);
+            startProjectOperationStream(projectName, 'lint');
+        } else {
+            addLog(`Failed to start lint for ${projectName}: ${result.message}`, 'error');
+        }
+    } catch (error) {
+        addLog(`Error starting lint for ${projectName}: ${error.message}`, 'error');
     }
 }
 
@@ -264,7 +305,7 @@ export function updateProjectCardOperationStatus(projectName) {
     }
     
     // Update buttons (disable by data-action when operation is running)
-    const disableWhenRunning = ['project:test', 'project:build', 'project:update', 'project:open', 'project:createTag'];
+    const disableWhenRunning = ['project:test', 'project:build', 'project:format', 'project:lint', 'project:update', 'project:open', 'project:createTag'];
     const buttons = card.querySelectorAll('.card-actions button[data-action]');
     buttons.forEach(btn => {
         if (disableWhenRunning.includes(btn.dataset.action)) {
@@ -291,7 +332,8 @@ export function viewProjectLogs(projectName) {
     if (!modal || !modalTitle || !logsContent) return;
     
     const opStatus = projectOperationStatus[projectName] || { type: null, running: false };
-    const operationType = opStatus.type === 'test' ? 'Test' : opStatus.type === 'build' ? 'Build' : 'Operation';
+    const typeLabels = { test: 'Test', build: 'Build', format: 'Format', lint: 'Lint' };
+    const operationType = typeLabels[opStatus.type] || 'Operation';
     
     modalTitle.textContent = `${projectName} - ${operationType} Logs`;
     modalManager.show('project-logs-modal');
@@ -314,7 +356,54 @@ export function viewProjectLogs(projectName) {
  * Close project logs modal
  */
 export function closeProjectLogsModal() {
+    if (bulkEventSource) {
+        bulkEventSource.close();
+        bulkEventSource = null;
+    }
     modalManager.hide('project-logs-modal');
+}
+
+/**
+ * Run bulk action (format, lint, test, build) across all projects and stream output to modal.
+ */
+export function runBulkAction(action) {
+    const modal = document.getElementById('project-logs-modal');
+    const modalTitle = document.getElementById('project-logs-modal-title');
+    const logsContent = document.getElementById('project-logs-content');
+    if (!modal || !modalTitle || !logsContent) return;
+
+    if (bulkEventSource) {
+        bulkEventSource.close();
+        bulkEventSource = null;
+    }
+
+    const actionLabel = action.charAt(0).toUpperCase() + action.slice(1);
+    modalTitle.textContent = `Bulk ${actionLabel}`;
+    logsContent.textContent = 'Connecting...';
+    modalManager.show('project-logs-modal');
+
+    bulkEventSource = projectsAPI.getBulkStream(action);
+    bulkEventSource.onmessage = (event) => {
+        const line = event.data;
+        if (logsContent.textContent === 'Connecting...' || logsContent.textContent === '') {
+            logsContent.textContent = line;
+        } else {
+            logsContent.textContent += '\n' + line;
+        }
+        logsContent.scrollTop = logsContent.scrollHeight;
+        if (line.includes('[COMPLETE]')) {
+            bulkEventSource.close();
+            bulkEventSource = null;
+            addLog(`Bulk ${actionLabel} finished`, 'success');
+        }
+    };
+    bulkEventSource.onerror = () => {
+        if (bulkEventSource) {
+            bulkEventSource.close();
+            bulkEventSource = null;
+        }
+        addLog(`Bulk ${actionLabel} stream error`, 'error');
+    };
 }
 
 /**

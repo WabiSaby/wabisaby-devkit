@@ -93,6 +93,56 @@ func (h *ProjectHandler) HandleListTags(w http.ResponseWriter, r *http.Request) 
 	SendSuccess(w, map[string]interface{}{"tags": tags})
 }
 
+// HandleSubmoduleSyncStatus returns project names that need sync (submodule HEAD != DevKit recorded ref).
+func (h *ProjectHandler) HandleSubmoduleSyncStatus(w http.ResponseWriter, r *http.Request) {
+	projects, err := service.GetProjects(h.devkitRoot)
+	if err != nil {
+		SendError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	names := make([]string, 0, len(projects))
+	for _, p := range projects {
+		names = append(names, p.Name)
+	}
+	needsSync, err := git.SubmoduleSyncStatus(h.devkitRoot, names)
+	if err != nil {
+		SendError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	SendSuccess(w, map[string]interface{}{"needsSync": needsSync})
+}
+
+// HandleSubmoduleSync stages and commits submodule ref changes in DevKit.
+func (h *ProjectHandler) HandleSubmoduleSync(w http.ResponseWriter, r *http.Request) {
+	projects, err := service.GetProjects(h.devkitRoot)
+	if err != nil {
+		SendError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	names := make([]string, 0, len(projects))
+	for _, p := range projects {
+		names = append(names, p.Name)
+	}
+	needsSync, err := git.SubmoduleSyncStatus(h.devkitRoot, names)
+	if err != nil {
+		SendError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(needsSync) == 0 {
+		SendSuccess(w, map[string]string{"message": "No submodule changes to sync"})
+		return
+	}
+	var req struct {
+		Message string `json:"message"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if err := git.SubmoduleSync(h.devkitRoot, needsSync, req.Message); err != nil {
+		SendError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	SendSuccess(w, map[string]string{"message": "Submodules synced to DevKit"})
+}
+
 // HandleProjectAction handles project actions (clone, update, test, build, open)
 func (h *ProjectHandler) HandleProjectAction(w http.ResponseWriter, r *http.Request) {
 	projectName := chi.URLParam(r, "name")
@@ -133,7 +183,7 @@ func (h *ProjectHandler) HandleProjectAction(w http.ResponseWriter, r *http.Requ
 		}
 		SendSuccess(w, map[string]string{"message": "update completed successfully"})
 		return
-	case "test", "build":
+	case "test", "build", "format", "lint":
 		// For non-streaming requests, return immediately
 		SendSuccess(w, map[string]string{"message": fmt.Sprintf("Starting %s for %s", action, projectName)})
 		return
@@ -210,6 +260,10 @@ func (h *ProjectHandler) handleProjectOperationStream(w http.ResponseWriter, r *
 		cmd = exec.Command("make", "test")
 	case "build":
 		cmd = exec.Command("make", "build")
+	case "format":
+		cmd = exec.Command("make", "format")
+	case "lint":
+		cmd = exec.Command("make", "lint")
 	default:
 		fmt.Fprintf(w, "data: Error: Unknown action %s\n\n", action)
 		flusher.Flush()
@@ -304,4 +358,76 @@ func (h *ProjectHandler) handleProjectOperationStream(w http.ResponseWriter, r *
 		flusher.Flush()
 		cmd.Wait()
 	}
+}
+
+// HandleBulkStream streams output from running format/lint/test/build across all projects.
+func (h *ProjectHandler) HandleBulkStream(w http.ResponseWriter, r *http.Request) {
+	action := chi.URLParam(r, "action")
+	switch action {
+	case "format", "lint", "test", "build":
+	default:
+		SendError(w, "invalid bulk action: use format, lint, test, or build", http.StatusBadRequest)
+		return
+	}
+
+	projects, err := service.GetProjects(h.devkitRoot)
+	if err != nil {
+		SendError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
+		return
+	}
+
+	ctx := r.Context()
+
+	for _, p := range projects {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		projectDir := filepath.Join(h.devkitRoot, "projects", p.Name)
+		if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+			fmt.Fprintf(w, "data: [%s] skipped (not cloned)\n\n", p.Name)
+			flusher.Flush()
+			continue
+		}
+
+		fmt.Fprintf(w, "data: [%s] Running make %s...\n\n", p.Name, action)
+		flusher.Flush()
+
+		cmd := exec.Command("make", action)
+		cmd.Dir = projectDir
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Fprintf(w, "data: [%s] [ERROR] exit: %v\n\n", p.Name, err)
+			flusher.Flush()
+		}
+		lines := strings.Split(strings.TrimSuffix(string(output), "\n"), "\n")
+		for _, line := range lines {
+			if line == "" {
+				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				fmt.Fprintf(w, "data: [%s] %s\n\n", p.Name, line)
+				flusher.Flush()
+			}
+		}
+	}
+
+	fmt.Fprintf(w, "data: [COMPLETE] Bulk %s finished\n\n", action)
+	flusher.Flush()
 }

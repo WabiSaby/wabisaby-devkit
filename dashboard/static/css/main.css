@@ -125,6 +125,25 @@ section h2 {
     gap: var(--spacing-sm);
 }
 
+/* Sync banner: show when submodule refs differ from DevKit */
+.sync-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow);
+}
+
+.sync-banner-text {
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+}
+
 /* Utility: hide element */
 .is-hidden {
     display: none !important;
@@ -261,13 +280,332 @@ section h2 {
     .container {
         padding: var(--spacing-sm);
     }
-    
+
     .header-actions {
         width: 100%;
     }
-    
+
     .header-actions .btn {
         flex: 1;
         min-width: 0;
+    }
+}
+
+/* ========================================
+   Backend Section Styles
+   ======================================== */
+
+.backend-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+/* Panels (Env, Migration) */
+.panel {
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h3 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.panel-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.panel-content {
+    padding: var(--spacing-md) var(--spacing-lg);
+}
+
+/* Environment Panel */
+.env-status-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.env-file-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-base);
+}
+
+.env-present {
+    color: var(--success-color);
+}
+
+.env-missing {
+    color: var(--error-color);
+}
+
+.env-check {
+    color: var(--success-color);
+    font-weight: bold;
+}
+
+.env-cross {
+    color: var(--error-color);
+    font-weight: bold;
+}
+
+.env-hint {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.env-section {
+    margin-top: var(--spacing-sm);
+}
+
+.env-section-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+    cursor: pointer;
+}
+
+.env-var-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs) var(--spacing-md);
+}
+
+.env-var-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
+}
+
+.env-var-item.set .env-var-status {
+    color: var(--success-color);
+}
+
+.env-var-item.unset .env-var-status {
+    color: var(--error-color);
+}
+
+.env-var-item.unset .env-var-name {
+    color: var(--text-secondary);
+}
+
+.env-optional {
+    margin-top: var(--spacing-md);
+}
+
+.env-optional summary {
+    cursor: pointer;
+    user-select: none;
+}
+
+.env-optional summary::-webkit-details-marker {
+    display: none;
+}
+
+.env-optional summary::before {
+    content: '+ ';
+}
+
+.env-optional[open] summary::before {
+    content: '- ';
+}
+
+/* Migration Panel */
+.migration-status-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.migration-version {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-base);
+}
+
+.migration-label {
+    color: var(--text-secondary);
+}
+
+.migration-value {
+    font-weight: var(--font-weight-semibold);
+    font-family: var(--font-family-mono);
+}
+
+.migration-dirty {
+    background-color: var(--error-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+}
+
+.migration-error {
+    color: var(--error-color);
+}
+
+.migration-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.migration-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-xs) 0;
+}
+
+.migration-item.applied .migration-check {
+    color: var(--success-color);
+}
+
+.migration-item.pending .migration-check {
+    color: var(--text-secondary);
+}
+
+.migration-item.pending .migration-name {
+    color: var(--text-secondary);
+}
+
+/* Backend Service Groups */
+.backend-service-group {
+    margin-top: var(--spacing-lg);
+}
+
+.backend-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.backend-group-header h3 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.backend-group-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.backend-services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--spacing-md);
+}
+
+/* Backend Service Card */
+.backend-service-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    transition: box-shadow var(--transition-base), border-color var(--transition-base);
+}
+
+.backend-service-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-hover);
+}
+
+.backend-service-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.backend-service-card .card-title {
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-base);
+}
+
+.backend-service-card .card-info {
+    margin-bottom: var(--spacing-md);
+}
+
+.backend-service-card .card-error {
+    color: var(--error-color);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-xs);
+}
+
+.backend-service-card .card-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.backend-service-card .card-actions-primary {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.backend-service-card .card-actions-secondary {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+/* Status loading indicator */
+.status-loading {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Don't use .status-error for .status-badge — badge uses background + white text */
+.status-error:not(.status-badge) {
+    color: var(--error-color);
+}
+
+/* Responsive adjustments for backend section */
+@media (max-width: 768px) {
+    .backend-services-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .backend-group-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-sm);
+    }
+
+    .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-sm);
     }
 }

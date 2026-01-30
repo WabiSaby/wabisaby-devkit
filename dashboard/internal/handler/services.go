@@ -21,7 +21,14 @@ func NewServiceHandler(devkitRoot string) *ServiceHandler {
 	return &ServiceHandler{devkitRoot: devkitRoot}
 }
 
-// ListServices returns all services with their status
+// Service UI URLs (quick links when service has a web interface)
+var serviceUIURLs = map[string]string{
+	"pgAdmin": "http://localhost:5050",
+	"MinIO":   "http://localhost:9001", // MinIO Console
+	"Vault":   "http://localhost:8200",
+}
+
+// ListServices returns all services with their status and UI URL when applicable
 func (h *ServiceHandler) ListServices(w http.ResponseWriter, r *http.Request) {
 	services := []model.Service{
 		{Name: "PostgreSQL", Port: 5432},
@@ -31,9 +38,11 @@ func (h *ServiceHandler) ListServices(w http.ResponseWriter, r *http.Request) {
 		{Name: "pgAdmin", Port: 5050},
 	}
 
-	// Check actual service status
 	for i := range services {
 		services[i].Status = service.CheckServiceStatus(services[i].Name, services[i].Port, h.devkitRoot)
+		if url, ok := serviceUIURLs[services[i].Name]; ok {
+			services[i].URL = url
+		}
 	}
 
 	SendSuccess(w, services)
@@ -48,7 +57,7 @@ func (h *ServiceHandler) HandleServiceAction(w http.ResponseWriter, r *http.Requ
 			serviceName = "all"
 		}
 	}
-	
+
 	// Extract action from URL path
 	path := strings.TrimPrefix(r.URL.Path, "/api/services/")
 	if serviceName == "all" {

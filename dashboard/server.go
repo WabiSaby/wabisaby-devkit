@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+
+	"github.com/wabisaby/devkit-dashboard/internal/config"
 )
 
 type Project struct {
@@ -58,10 +60,10 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = config.DefaultPort
 	}
 
-	log.Printf("Starting DevKit dashboard server on http://localhost:%s", port)
+	log.Printf(config.StartupServerURLFormat, port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 

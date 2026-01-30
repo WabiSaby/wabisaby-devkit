@@ -20,9 +20,22 @@
             </div>
         </header>
 
+        <div id="sync-banner" class="sync-banner is-hidden" role="status" aria-live="polite">
+            <span class="sync-banner-text">Submodule commits have changed. Sync to DevKit?</span>
+            <button type="button" class="btn btn-primary btn-sm" data-action="dashboard:sync">Sync</button>
+        </div>
+
         <div class="dashboard">
             <section class="projects-section">
-                <h2>Projects</h2>
+                <div class="section-header">
+                    <h2>Projects</h2>
+                    <div class="section-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" data-action="project:bulkFormat">Format all</button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-action="project:bulkLint">Lint all</button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-action="project:bulkTest">Test all</button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-action="project:bulkBuild">Build all</button>
+                    </div>
+                </div>
                 <div id="projects-grid" class="projects-grid">
                     <!-- Projects will be loaded here -->
                 </div>
@@ -38,6 +51,44 @@
                 </div>
                 <div id="services-grid" class="services-grid">
                     <!-- Infrastructure services will be loaded here -->
+                </div>
+            </section>
+
+            <section class="backend-section">
+                <div class="section-header">
+                    <h2>WabiSaby-Go Backend</h2>
+                </div>
+
+                <!-- Environment Status Panel -->
+                <div id="env-panel" class="panel env-panel">
+                    <div class="panel-header">
+                        <h3>Environment</h3>
+                        <div class="panel-actions">
+                            <button type="button" class="btn btn-secondary btn-sm" data-action="env:copyExample" id="copy-env-btn">Copy from example</button>
+                        </div>
+                    </div>
+                    <div id="env-status" class="panel-content">
+                        <!-- Env status loaded here -->
+                    </div>
+                </div>
+
+                <!-- Migration Status Panel -->
+                <div id="migration-panel" class="panel migration-panel">
+                    <div class="panel-header">
+                        <h3>Database Migrations</h3>
+                        <div class="panel-actions">
+                            <button type="button" class="btn btn-success btn-sm" data-action="migration:up">Migrate Up</button>
+                            <button type="button" class="btn btn-warning btn-sm" data-action="migration:down">Migrate Down</button>
+                        </div>
+                    </div>
+                    <div id="migration-status" class="panel-content">
+                        <!-- Migration status loaded here -->
+                    </div>
+                </div>
+
+                <!-- Backend Services Container (grouped) -->
+                <div id="backend-services-container">
+                    <!-- Services grouped by config file will be loaded here -->
                 </div>
             </section>
 
@@ -119,6 +170,39 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" id="create-tag-submit" data-action="project:submitCreateTag">Create</button>
                 <button type="button" class="btn btn-secondary" data-action="modal:close" data-modal-id="create-tag-modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backend Service Logs Modal -->
+    <div id="backend-logs-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="backend-logs-modal-title" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header modal-header-with-status">
+                <div class="modal-title-row">
+                    <h2 id="backend-logs-modal-title">Service Logs</h2>
+                    <span id="backend-connection-status" class="connection-status connecting">Connecting...</span>
+                </div>
+                <button type="button" class="modal-close" data-action="modal:close" data-modal-id="backend-logs-modal" aria-label="Close">&times;</button>
+            </div>
+            <div id="backend-logs-content" class="modal-logs"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="backend-pause-logs-btn" data-action="backend-logs:pause">Pause</button>
+                <button type="button" class="btn btn-primary" data-action="backend-logs:refresh">Reconnect</button>
+                <button type="button" class="btn btn-secondary" data-action="modal:close" data-modal-id="backend-logs-modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Migration Output Modal -->
+    <div id="migration-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="migration-modal-title" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="migration-modal-title">Migration Output</h2>
+                <button type="button" class="modal-close" data-action="modal:close" data-modal-id="migration-modal" aria-label="Close">&times;</button>
+            </div>
+            <div id="migration-output" class="modal-logs"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-action="modal:close" data-modal-id="migration-modal">Close</button>
             </div>
         </div>
     </div>

@@ -122,6 +122,16 @@
     min-width: 40px;
 }
 
+/* Anchor as button (e.g. Open UI link) – no underline, same look */
+a.btn {
+    text-decoration: none;
+    color: inherit;
+}
+
+a.btn:hover {
+    color: inherit;
+}
+
 .btn-theme-toggle {
     border-radius: var(--radius-md);
 }
