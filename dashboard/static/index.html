@@ -193,6 +193,20 @@
         </div>
     </div>
 
+    <!-- Health Check Result Modal -->
+    <div id="health-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="health-modal-title" aria-hidden="true">
+        <div class="modal-content modal-content-sm">
+            <div class="modal-header">
+                <h2 id="health-modal-title">Health Check</h2>
+                <button type="button" class="modal-close" data-action="modal:close" data-modal-id="health-modal" aria-label="Close">&times;</button>
+            </div>
+            <div id="health-modal-content" class="health-result-content"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-action="modal:close" data-modal-id="health-modal">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Migration Output Modal -->
     <div id="migration-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="migration-modal-title" aria-hidden="true">
         <div class="modal-content">

@@ -7,7 +7,7 @@ type BackendServiceConfig struct {
 	Group      string // "core", "coordinator", "node"
 	Port       int
 	HealthPath string // e.g., "/health"
-	DocsPath   string // e.g., "/swagger/index.html"
+	DocsPath   string // e.g., "/docs"
 }
 
 // GetBackendServices returns all configured WabiSaby-Go services
@@ -20,7 +20,7 @@ func GetBackendServices() []BackendServiceConfig {
 			Group:      "core",
 			Port:       8080,
 			HealthPath: "/health",
-			DocsPath:   "/swagger/index.html",
+			DocsPath:   "/docs",
 		},
 		{
 			Name:    "websocket",

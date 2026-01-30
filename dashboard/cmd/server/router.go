@@ -84,6 +84,7 @@ func NewRouter(projectHandler *handler.ProjectHandler, serviceHandler *handler.S
 	r.Route("/api/backend", func(r chi.Router) {
 		// Services
 		r.Get("/services", backendHandler.ListBackendServices)
+		r.Get("/services/{name}/health", backendHandler.CheckHealth)
 		r.Post("/services/{name}/start", backendHandler.StartBackendService)
 		r.Post("/services/{name}/stop", backendHandler.StopBackendService)
 		r.Post("/services/group/{group}/start", backendHandler.StartAllInGroup)

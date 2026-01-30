@@ -2,7 +2,7 @@
 
 import { loadProjects, cloneProject, updateProject, testProject, buildProject, formatProject, lintProject, openProjectInEditor, viewProjectLogs, closeProjectLogsModal, openCreateTagModal, submitCreateTagForm, closeCreateTagModal, runBulkAction } from './projects.js';
 import { loadServices, checkService, startService, stopService, startAllServices, stopAllServices, viewServiceLogs, refreshServiceLogs, toggleLogsPause, closeLogsModal, cleanupLogsModal } from './services.js';
-import { loadBackendServices, startBackendService, stopBackendService, startBackendGroup, stopBackendGroup, viewBackendServiceLogs, refreshBackendServiceLogs, toggleBackendLogsPause, closeBackendLogsModal, cleanupBackendLogsModal, loadMigrationStatus, runMigrationUp, runMigrationDown, closeMigrationModal, loadEnvStatus, copyEnvExample } from './backend.js';
+import { loadBackendServices, startBackendService, stopBackendService, startBackendGroup, stopBackendGroup, viewBackendServiceLogs, refreshBackendServiceLogs, toggleBackendLogsPause, closeBackendLogsModal, cleanupBackendLogsModal, checkBackendHealth, loadMigrationStatus, runMigrationUp, runMigrationDown, closeMigrationModal, loadEnvStatus, copyEnvExample } from './backend.js';
 import { addLog } from './logs.js';
 import { submoduleAPI } from './api.js';
 import { initUI, themeManager, pollingManager } from './ui.js';
@@ -207,6 +207,7 @@ function registerAllActions() {
     registerAction('backend:startGroup', (p) => startBackendGroup(p.group));
     registerAction('backend:stopGroup', (p) => stopBackendGroup(p.group));
     registerAction('backend:viewLogs', (p) => viewBackendServiceLogs(p.service));
+    registerAction('backend:checkHealth', (p) => checkBackendHealth(p.service));
 
     // Backend logs modal actions
     registerAction('backend-logs:pause', () => toggleBackendLogsPause());

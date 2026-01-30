@@ -159,6 +159,47 @@ export async function stopBackendGroup(group) {
 }
 
 /**
+ * Check backend service health and show result in modal
+ */
+export async function checkBackendHealth(serviceName) {
+    const titleEl = document.getElementById('health-modal-title');
+    const contentEl = document.getElementById('health-modal-content');
+    if (!titleEl || !contentEl) return;
+
+    titleEl.textContent = `Health check — ${serviceName}`;
+    contentEl.innerHTML = '<div class="health-result-loading">Checking…</div>';
+    modalManager.show('health-modal');
+
+    try {
+        const result = await backendAPI.getHealth(serviceName);
+        const d = result?.data || {};
+        const ok = d.ok === true;
+        const statusCode = d.statusCode ?? 0;
+        const status = d.status || '';
+        const body = d.body ?? '';
+        const err = d.error || '';
+
+        let html = `<div class="health-result-status ${ok ? 'health-ok' : 'health-fail'}">`;
+        html += `<span class="health-result-badge">${ok ? 'OK' : 'Unhealthy'}</span>`;
+        html += statusCode ? ` <span class="health-result-code">${statusCode} ${status}</span>` : '';
+        if (err) html += ` <span class="health-result-error">${escapeHtml(err)}</span>`;
+        html += '</div>';
+        if (body) {
+            html += '<pre class="health-result-body">' + escapeHtml(body) + '</pre>';
+        }
+        contentEl.innerHTML = html;
+    } catch (error) {
+        contentEl.innerHTML = `<div class="health-result-status health-fail"><span class="health-result-error">${escapeHtml(error.message)}</span></div>`;
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
  * Update service button states
  */
 function updateServiceButtons(name, startDisabled, stopDisabled) {

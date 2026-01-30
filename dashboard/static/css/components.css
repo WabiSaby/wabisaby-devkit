@@ -527,6 +527,10 @@ a.btn:hover {
     overflow: hidden;
 }
 
+.modal-content-sm {
+    max-width: 420px;
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -597,6 +601,67 @@ a.btn:hover {
     justify-content: flex-end;
     gap: var(--spacing-sm);
     background-color: var(--bg-secondary);
+}
+
+/* Health check result modal */
+.health-result-content {
+    padding: var(--spacing-lg);
+    min-height: 60px;
+}
+
+.health-result-loading {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.health-result-status {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.health-result-status.health-ok .health-result-badge {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.health-result-status.health-fail .health-result-badge {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.health-result-badge {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+}
+
+.health-result-code {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.health-result-error {
+    color: var(--error-color);
+    font-size: var(--font-size-sm);
+}
+
+.health-result-body {
+    margin: 0;
+    padding: var(--spacing-md);
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-relaxed);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 /* Create tag modal form */

@@ -2,7 +2,10 @@ package handler
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/wabisaby/devkit-dashboard/internal/config"
@@ -28,7 +31,8 @@ func NewBackendHandler(pm *service.ProcessManager, ms *service.MigrationService,
 	}
 }
 
-// ListBackendServices returns all WabiSaby-Go services with their status
+// ListBackendServices returns all WabiSaby-Go services with their status.
+// If the process manager has no record (e.g. after dashboard restart), we probe the health endpoint so already-running services still show as "running".
 func (h *BackendHandler) ListBackendServices(w http.ResponseWriter, r *http.Request) {
 	services := config.GetBackendServices()
 	result := make([]model.BackendService, 0, len(services))
@@ -41,6 +45,13 @@ func (h *BackendHandler) ListBackendServices(w http.ResponseWriter, r *http.Requ
 			Status: h.processManager.GetStatus(svc.Name),
 			PID:    h.processManager.GetPID(svc.Name),
 			Error:  h.processManager.GetError(svc.Name),
+		}
+
+		// If not in process manager (e.g. dashboard was restarted), detect running via health probe
+		if bs.Status == "stopped" && svc.Port > 0 && svc.HealthPath != "" {
+			if h.processManager.ProbeHealth(svc.Port, svc.HealthPath) {
+				bs.Status = "running"
+			}
 		}
 
 		// Add health and docs URLs for running services with ports
@@ -75,7 +86,7 @@ func (h *BackendHandler) StartBackendService(w http.ResponseWriter, r *http.Requ
 	SendSuccess(w, map[string]string{"message": fmt.Sprintf("Started %s", name)})
 }
 
-// StopBackendService stops a specific service
+// StopBackendService stops a specific service. If the process manager has no record (e.g. service was running before dashboard restart), we try to kill any process listening on the service's port.
 func (h *BackendHandler) StopBackendService(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	if name == "" {
@@ -83,9 +94,14 @@ func (h *BackendHandler) StopBackendService(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	svc := config.GetServiceByName(name)
 	if err := h.processManager.Stop(name); err != nil {
 		SendError(w, fmt.Sprintf("Failed to stop %s: %v", name, err), http.StatusInternalServerError)
 		return
+	}
+	// Also kill any process on the service port (handles "orphan" processes we didn't start)
+	if svc != nil && svc.Port > 0 {
+		_ = h.processManager.KillProcessOnPort(svc.Port)
 	}
 
 	SendSuccess(w, map[string]string{"message": fmt.Sprintf("Stopped %s", name)})
@@ -121,6 +137,53 @@ func (h *BackendHandler) StopAllInGroup(w http.ResponseWriter, r *http.Request) 
 	}
 
 	SendSuccess(w, map[string]string{"message": fmt.Sprintf("Stopped all services in %s group", group)})
+}
+
+// CheckHealth proxies a GET to the service's health endpoint and returns status and body
+func (h *BackendHandler) CheckHealth(w http.ResponseWriter, r *http.Request) {
+	name := chi.URLParam(r, "name")
+	if name == "" {
+		SendError(w, "Service name required", http.StatusBadRequest)
+		return
+	}
+
+	services := config.GetBackendServices()
+	var svc *config.BackendServiceConfig
+	for i := range services {
+		if services[i].Name == name {
+			svc = &services[i]
+			break
+		}
+	}
+	if svc == nil || svc.HealthPath == "" {
+		SendError(w, "Service has no health endpoint", http.StatusBadRequest)
+		return
+	}
+
+	url := fmt.Sprintf("http://localhost:%d%s", svc.Port, svc.HealthPath)
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		SendSuccess(w, map[string]interface{}{
+			"ok":         false,
+			"statusCode": 0,
+			"status":     "",
+			"body":       err.Error(),
+			"error":      err.Error(),
+		})
+		return
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	body := strings.TrimSpace(string(bodyBytes))
+
+	SendSuccess(w, map[string]interface{}{
+		"ok":         resp.StatusCode >= 200 && resp.StatusCode < 300,
+		"statusCode": resp.StatusCode,
+		"status":     resp.Status,
+		"body":       body,
+	})
 }
 
 // StreamServiceLogs streams logs for a service via SSE

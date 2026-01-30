@@ -136,17 +136,17 @@ export function createBackendServiceCard(service) {
     logsBtn.appendChild(createIcon('eye', 'icon icon-sm'));
     secondary.appendChild(logsBtn);
 
-    // Health link (if available and running)
+    // Health check button (if available and running)
     if (service.healthUrl && status === 'running') {
-        const healthLink = document.createElement('a');
-        healthLink.href = service.healthUrl;
-        healthLink.target = '_blank';
-        healthLink.rel = 'noopener noreferrer';
-        healthLink.className = 'btn btn-secondary btn-icon-only';
-        healthLink.title = 'Health endpoint';
-        healthLink.setAttribute('aria-label', 'Health endpoint');
-        healthLink.appendChild(createIcon('heart', 'icon icon-sm'));
-        secondary.appendChild(healthLink);
+        const healthBtn = document.createElement('button');
+        healthBtn.type = 'button';
+        healthBtn.className = 'btn btn-secondary btn-icon-only';
+        healthBtn.title = 'Check health';
+        healthBtn.setAttribute('aria-label', 'Check health');
+        healthBtn.setAttribute('data-action', 'backend:checkHealth');
+        healthBtn.setAttribute('data-service', service.name);
+        healthBtn.appendChild(createIcon('heart', 'icon icon-sm'));
+        secondary.appendChild(healthBtn);
     }
 
     // Docs link (if available and running)

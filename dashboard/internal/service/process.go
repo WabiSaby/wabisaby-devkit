@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -266,6 +269,52 @@ func (pm *ProcessManager) GetError(serviceName string) string {
 		return ""
 	}
 	return proc.Error.Error()
+}
+
+// ProbeHealth returns true if the given port/path responds with 2xx (e.g. after dashboard restart we can detect services we didn't start).
+func (pm *ProcessManager) ProbeHealth(port int, path string) bool {
+	if port <= 0 || path == "" {
+		return false
+	}
+	url := fmt.Sprintf("http://localhost:%d%s", port, path)
+	client := &http.Client{Timeout: 1 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode >= 200 && resp.StatusCode < 300
+}
+
+// KillProcessOnPort sends SIGTERM to any process listening on the given port (Unix). Used to stop "orphan" services that were left running before a dashboard restart.
+func (pm *ProcessManager) KillProcessOnPort(port int) error {
+	if port <= 0 {
+		return nil
+	}
+	if runtime.GOOS == "windows" {
+		// TODO: implement for Windows (netstat -ano, taskkill)
+		return nil
+	}
+	// lsof -i :PORT -t outputs one PID per line
+	out, err := exec.Command("lsof", "-i", fmt.Sprintf(":%d", port), "-t").Output()
+	if err != nil {
+		return nil // no process on port
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		pid, err := strconv.Atoi(line)
+		if err != nil {
+			continue
+		}
+		if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
+			log.Printf("Failed to kill PID %d on port %d: %v", pid, port, err)
+		}
+	}
+	return nil
 }
 
 // SubscribeLogs subscribes to log output from a service

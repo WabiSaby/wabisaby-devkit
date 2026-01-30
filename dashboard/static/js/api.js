@@ -93,6 +93,7 @@ export const submoduleAPI = {
 export const backendAPI = {
     // Services
     listServices: () => apiRequest('/backend/services'),
+    getHealth: (name) => apiRequest(`/backend/services/${name}/health`),
     startService: (name) => apiRequest(`/backend/services/${name}/start`, { method: 'POST' }),
     stopService: (name) => apiRequest(`/backend/services/${name}/stop`, { method: 'POST' }),
     startGroup: (group) => apiRequest(`/backend/services/group/${group}/start`, { method: 'POST' }),
