@@ -45,14 +45,46 @@ function getPayloadFromElement(el) {
     return payload;
 }
 
+/** When open, the menu is moved to body; we store its original parent to restore on close. */
+let floatingDropdownWrap = null;
+
 /**
- * Close all card dropdowns (used after action or click outside).
+ * Close all card dropdowns: move floating menu back into card and clear state.
  */
 function closeAllCardDropdowns() {
     document.querySelectorAll('.card-actions-more.is-open').forEach((wrap) => {
         wrap.classList.remove('is-open');
         wrap.querySelector('[aria-expanded]')?.setAttribute('aria-expanded', 'false');
     });
+    const floating = document.querySelector('.card-dropdown-menu-floating');
+    if (floating && floatingDropdownWrap) {
+        floatingDropdownWrap.appendChild(floating);
+        floating.classList.remove('card-dropdown-menu-floating');
+        floating.style.cssText = '';
+        floatingDropdownWrap.classList.remove('is-open');
+        floatingDropdownWrap.querySelector('[aria-expanded]')?.setAttribute('aria-expanded', 'false');
+        floatingDropdownWrap = null;
+    }
+}
+
+/**
+ * Open dropdown as floating layer (append menu to body, position below trigger, high z-index).
+ */
+function openDropdownFloating(trigger, wrap) {
+    const menu = wrap.querySelector('.card-dropdown-menu');
+    if (!menu) return;
+    const rect = trigger.getBoundingClientRect();
+    const menuWidth = 180;
+    document.body.appendChild(menu);
+    menu.classList.add('card-dropdown-menu-floating');
+    menu.style.position = 'fixed';
+    menu.style.top = `${rect.bottom + 4}px`;
+    menu.style.left = `${Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8)}px`;
+    menu.style.right = 'auto';
+    menu.style.marginTop = '0';
+    wrap.classList.add('is-open');
+    trigger.setAttribute('aria-expanded', 'true');
+    floatingDropdownWrap = wrap;
 }
 
 /**
@@ -68,8 +100,14 @@ function handleClick(e) {
     if (actionKey === 'dropdown:toggle') {
         const wrap = trigger.closest('.card-actions-more');
         if (wrap) {
-            wrap.classList.toggle('is-open');
-            trigger.setAttribute('aria-expanded', wrap.classList.contains('is-open'));
+            const wasOpen = floatingDropdownWrap === wrap;
+            if (floatingDropdownWrap) closeAllCardDropdowns();
+            if (wasOpen) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+            openDropdownFloating(trigger, wrap);
         }
         e.preventDefault();
         e.stopPropagation();
@@ -143,7 +181,7 @@ export function init() {
     document.body.addEventListener('click', handleClick);
 
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.card-actions-more')) {
+        if (!e.target.closest('.card-actions-more') && !e.target.closest('.card-dropdown-menu-floating')) {
             closeAllCardDropdowns();
         }
     });

@@ -251,6 +251,38 @@
     color: var(--text-muted);
 }
 
+/* Operation row: Testing/Building badge + view logs eye icon */
+.card-operation-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.card-operation-row .operation-status {
+    margin-top: 0;
+}
+
+.card-view-logs-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    border-radius: var(--radius);
+}
+
+.card-view-logs-btn:hover:not(:disabled) {
+    color: var(--info-color);
+    background: var(--bg-hover);
+}
+
 /* Split layout: primary action(s) + secondary / dropdown */
 .card-actions-split {
     display: flex;
@@ -307,6 +339,12 @@
 
 .card-actions-more.is-open .card-dropdown-menu {
     display: block;
+}
+
+/* Floating dropdown: moved to body when open, above card with high z-index */
+.card-dropdown-menu-floating {
+    display: block !important;
+    z-index: 1100;
 }
 
 .card-dropdown-item {

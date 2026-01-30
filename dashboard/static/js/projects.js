@@ -246,8 +246,12 @@ export function updateProjectCardOperationStatus(projectName) {
             </span>
         `;
         setTimeout(() => {
-            if (statusBadge && statusBadge.parentNode) {
-                statusBadge.remove();
+            if (statusBadge) {
+                statusBadge.innerHTML = '';
+            }
+            const viewLogsBtn = document.getElementById(`view-logs-${projectName}`);
+            if (viewLogsBtn) {
+                viewLogsBtn.style.display = 'none';
             }
             if (projectOperationStatus[projectName]) {
                 projectOperationStatus[projectName].completed = false;
@@ -255,7 +259,7 @@ export function updateProjectCardOperationStatus(projectName) {
         }, 3000);
     } else {
         if (statusBadge) {
-            statusBadge.remove();
+            statusBadge.innerHTML = '';
         }
     }
     
@@ -272,7 +276,7 @@ export function updateProjectCardOperationStatus(projectName) {
     const viewLogsBtn = document.getElementById(`view-logs-${projectName}`);
     if (viewLogsBtn) {
         const hasLogs = projectLogs[projectName] && projectLogs[projectName].length > 0;
-        viewLogsBtn.style.display = (opStatus.running || hasLogs) ? 'flex' : 'none';
+        viewLogsBtn.style.display = (opStatus.running || hasLogs) ? 'inline-flex' : 'none';
     }
 }
 

@@ -64,6 +64,32 @@ header h1 {
     gap: var(--spacing-2xl);
 }
 
+/* Footer */
+.app-footer {
+    margin-top: var(--spacing-2xl);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.app-footer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+    transition: color var(--transition-fast);
+}
+
+.app-footer-link:hover {
+    color: var(--text-primary);
+}
+
+.app-footer-icon {
+    flex-shrink: 0;
+}
+
 section {
     background-color: var(--bg-card);
     border-radius: var(--radius-lg);

@@ -34,7 +34,28 @@ export function createProjectCard(project, operationStatus = null) {
         </div>
     `;
 
-    if (opStatus.running) {
+    if (isCloned) {
+        const opRow = document.createElement('div');
+        opRow.className = 'card-operation-row';
+        const opStatusDiv = document.createElement('div');
+        opStatusDiv.className = 'card-info-item operation-status';
+        const viewLogsBtn = document.createElement('button');
+        viewLogsBtn.type = 'button';
+        viewLogsBtn.className = 'btn card-view-logs-btn';
+        viewLogsBtn.setAttribute('data-action', 'project:viewLogs');
+        viewLogsBtn.setAttribute('data-project', project.name);
+        viewLogsBtn.id = `view-logs-${project.name}`;
+        viewLogsBtn.setAttribute('aria-label', 'View logs');
+        viewLogsBtn.title = 'View logs';
+        viewLogsBtn.style.display = 'none';
+        viewLogsBtn.appendChild(createIcon('eye', 'icon icon-sm'));
+        opRow.appendChild(opStatusDiv);
+        opRow.appendChild(viewLogsBtn);
+        info.appendChild(opRow);
+        if (opStatus.running) {
+            opStatusDiv.appendChild(createOperationBadge(opStatus.type));
+        }
+    } else if (opStatus.running) {
         const opBadge = document.createElement('div');
         opBadge.className = 'card-info-item operation-status';
         opBadge.appendChild(createOperationBadge(opStatus.type));
@@ -74,8 +95,7 @@ export function createProjectCard(project, operationStatus = null) {
             { label: 'Update', action: 'project:update', icon: 'refresh', payload: { project: project.name } },
             { label: 'Run tests', action: 'project:test', icon: 'play', payload: { project: project.name } },
             { label: 'Build', action: 'project:build', icon: 'build', payload: { project: project.name } },
-            { label: 'Create release tag', action: 'project:createTag', icon: 'tag', payload: { project: project.name, commit: project.commit || '-' } },
-            { label: 'View logs', action: 'project:viewLogs', icon: 'eye', payload: { project: project.name } }
+            { label: 'Create release tag', action: 'project:createTag', icon: 'tag', payload: { project: project.name, commit: project.commit || '-' } }
         ];
 
         menuItems.forEach(({ label, action, icon, payload }) => {
@@ -87,10 +107,6 @@ export function createProjectCard(project, operationStatus = null) {
             if (payload.project) item.dataset.project = payload.project;
             if (payload.commit !== undefined) item.dataset.commit = payload.commit;
             item.innerHTML = `<span class="card-dropdown-item-icon" aria-hidden="true">${getIconSvg(icon)}</span><span>${label}</span>`;
-            if (action === 'project:viewLogs') {
-                item.id = `view-logs-${project.name}`;
-                item.style.display = 'none';
-            }
             menu.appendChild(item);
         });
 
@@ -111,7 +127,7 @@ function getIconSvg(name) {
     const icons = {
         refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>',
         play: '<path d="M8 5v14l11-7z" fill="currentColor"/>',
-        build: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/>',
+        build: '<path d="M11.414 10l-7.383 7.418a2.091 2.091 0 0 0 0 2.967 2.11 2.11 0 0 0 2.976 0l7.407-7.385"/><path d="M18.121 15.293l2.586-2.586a1 1 0 0 0 0-1.414l-7.586-7.586a1 1 0 0 0-1.414 0l-2.586 2.586a1 1 0 0 0 0 1.414l7.586 7.586a1 1 0 0 0 1.414 0"/>',
         tag: '<path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/>',
         eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>'
     };
