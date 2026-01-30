@@ -40,6 +40,11 @@ export const projectsAPI = {
     test: (name) => apiRequest(`/projects/${name}/test`, { method: 'POST' }),
     build: (name) => apiRequest(`/projects/${name}/build`, { method: 'POST' }),
     open: (name) => apiRequest(`/projects/${name}/open`, { method: 'POST' }),
+    createTag: (name, body) => apiRequest(`/projects/${name}/tag`, {
+        method: 'POST',
+        body: JSON.stringify({ tag: body.tag, message: body.message || '', push: body.push || false })
+    }),
+    listTags: (name) => apiRequest(`/projects/${name}/tags`),
     getStream: (name, operation) => {
         return new EventSource(`${API_BASE}/projects/${name}/${operation}/stream`);
     }

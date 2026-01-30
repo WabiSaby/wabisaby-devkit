@@ -11,12 +11,12 @@
         <header>
             <h1>WabiSaby DevKit</h1>
             <div class="header-actions">
-                <button id="refresh-btn" class="btn btn-primary">
-                    <span class="icon icon-sm">🔄</span>
+                <button type="button" id="refresh-btn" class="btn btn-primary" data-action="dashboard:refresh">
+                    <span id="refresh-icon" class="icon icon-sm" aria-hidden="true"></span>
                     Refresh
                 </button>
-                <button id="polling-toggle" class="btn btn-secondary">Enable Auto-refresh</button>
-                <button id="theme-toggle" type="button" class="btn btn-secondary btn-icon-only btn-theme-toggle" aria-label="Switch theme" title="Switch theme"></button>
+                <button type="button" id="polling-toggle" class="btn btn-secondary" data-action="dashboard:polling">Enable Auto-refresh</button>
+                <button type="button" id="theme-toggle" class="btn btn-secondary btn-icon-only btn-theme-toggle" data-action="dashboard:theme" aria-label="Switch theme" title="Switch theme"></button>
             </div>
         </header>
 
@@ -29,11 +29,11 @@
             </section>
 
             <section class="services-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                <div class="section-header">
                     <h2>Infrastructure</h2>
-                    <div style="display: flex; gap: var(--spacing-sm);">
-                        <button class="btn btn-success" onclick="startAllServices()">Start All</button>
-                        <button class="btn btn-danger" onclick="stopAllServices()">Stop All</button>
+                    <div class="section-actions">
+                        <button type="button" class="btn btn-success" data-action="service:startAll">Start All</button>
+                        <button type="button" class="btn btn-danger" data-action="service:stopAll">Stop All</button>
                     </div>
                 </div>
                 <div id="services-grid" class="services-grid">
@@ -51,34 +51,65 @@
     </div>
 
     <!-- Service Logs Modal -->
-    <div id="logs-modal" class="modal">
+    <div id="logs-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="logs-modal-title" aria-hidden="true">
         <div class="modal-content">
-            <div class="modal-header">
-                <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+            <div class="modal-header modal-header-with-status">
+                <div class="modal-title-row">
                     <h2 id="logs-modal-title">Service Logs</h2>
                     <span id="connection-status" class="connection-status connecting">Connecting...</span>
                 </div>
-                <button class="modal-close">&times;</button>
+                <button type="button" class="modal-close" data-action="modal:close" data-modal-id="logs-modal" aria-label="Close">&times;</button>
             </div>
             <div id="logs-content" class="modal-logs"></div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" id="pause-logs-btn" onclick="toggleLogsPause()">Pause</button>
-                <button class="btn btn-primary" onclick="refreshServiceLogs()">Reconnect</button>
-                <button class="btn btn-secondary" onclick="closeLogsModal()">Close</button>
+                <button type="button" class="btn btn-secondary" id="pause-logs-btn" data-action="logs:pause">Pause</button>
+                <button type="button" class="btn btn-primary" data-action="logs:refresh">Reconnect</button>
+                <button type="button" class="btn btn-secondary" data-action="modal:close" data-modal-id="logs-modal">Close</button>
             </div>
         </div>
     </div>
 
     <!-- Project Build/Test Logs Modal -->
-    <div id="project-logs-modal" class="modal">
+    <div id="project-logs-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="project-logs-modal-title" aria-hidden="true">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="project-logs-modal-title">Project Logs</h2>
-                <button class="modal-close">&times;</button>
+                <button type="button" class="modal-close" data-action="modal:close" data-modal-id="project-logs-modal" aria-label="Close">&times;</button>
             </div>
             <div id="project-logs-content" class="modal-logs"></div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeProjectLogsModal()">Close</button>
+                <button type="button" class="btn btn-secondary" data-action="modal:close" data-modal-id="project-logs-modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create release tag modal -->
+    <div id="create-tag-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="create-tag-modal-title" aria-hidden="true">
+        <div class="modal-content modal-form">
+            <div class="modal-header">
+                <h2 id="create-tag-modal-title">Create release tag</h2>
+                <button type="button" class="modal-close" data-action="modal:close" data-modal-id="create-tag-modal" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="create-tag-hint">Tag will be created at current commit: <strong id="create-tag-commit">-</strong></p>
+                <div id="create-tag-error" class="create-tag-error is-hidden" role="alert"></div>
+                <div class="form-group">
+                    <label for="create-tag-name">Tag name <span class="required">*</span></label>
+                    <input type="text" id="create-tag-name" class="form-input" placeholder="v1.0.0" required>
+                </div>
+                <div class="form-group">
+                    <label for="create-tag-message">Message (optional)</label>
+                    <textarea id="create-tag-message" class="form-input form-textarea" placeholder="Release 1.0.0" rows="2"></textarea>
+                </div>
+                <div class="form-group form-group-checkbox">
+                    <input type="checkbox" id="create-tag-push" class="form-checkbox">
+                    <label for="create-tag-push">Push to remote</label>
+                </div>
+                <div id="create-tag-existing-list" class="create-tag-existing is-hidden"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="create-tag-submit" data-action="project:submitCreateTag">Create</button>
+                <button type="button" class="btn btn-secondary" data-action="modal:close" data-modal-id="create-tag-modal">Cancel</button>
             </div>
         </div>
     </div>

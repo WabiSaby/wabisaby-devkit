@@ -1,8 +1,11 @@
 package git
 
 import (
+	"errors"
+	"fmt"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -73,5 +76,74 @@ func InitializeSubmodule(devkitRoot, projectName string) error {
 		return err
 	}
 
+	return nil
+}
+
+// ValidateTagName checks that tagName is a valid Git ref name (git check-ref-format).
+// Rejects empty, "..", refs containing "..", ending with "." or "/", and invalid characters.
+func ValidateTagName(tagName string) error {
+	s := strings.TrimSpace(tagName)
+	if s == "" {
+		return errors.New("tag name is required")
+	}
+	if s == ".." || strings.Contains(s, "..") {
+		return errors.New("tag name cannot contain '..'")
+	}
+	if strings.HasSuffix(s, ".") || strings.HasSuffix(s, "/") {
+		return errors.New("tag name cannot end with '.' or '/'")
+	}
+	invalid := []string{" ", "~", "^", ":", "?", "*", "[", "\\", "\x00"}
+	for _, c := range invalid {
+		if strings.Contains(s, c) {
+			return fmt.Errorf("tag name contains invalid character")
+		}
+	}
+	return nil
+}
+
+// CreateTag creates an annotated tag at HEAD in dir. Fails if tag already exists (no -f).
+func CreateTag(dir, tagName, message string) error {
+	if message == "" {
+		message = "Release " + tagName
+	}
+	cmd := exec.Command("git", "tag", "-a", tagName, "-m", message)
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(output), "already exists") {
+			return errors.New("tag already exists")
+		}
+		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(output)))
+	}
+	return nil
+}
+
+// ListTags returns sorted tag names for the repository in dir.
+func ListTags(dir string) ([]string, error) {
+	cmd := exec.Command("git", "tag", "-l")
+	cmd.Dir = dir
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("list tags: %w", err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	var tags []string
+	for _, line := range lines {
+		if line != "" {
+			tags = append(tags, line)
+		}
+	}
+	sort.Strings(tags)
+	return tags, nil
+}
+
+// PushTag pushes the tag to origin.
+func PushTag(dir, tagName string) error {
+	cmd := exec.Command("git", "push", "origin", tagName)
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("push failed: %s", strings.TrimSpace(string(output)))
+	}
 	return nil
 }

@@ -136,3 +136,7 @@
     animation: shimmer 1.5s infinite;
     border-radius: var(--radius);
 }
+
+.skeleton-placeholder {
+    height: 200px;
+}

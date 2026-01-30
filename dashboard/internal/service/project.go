@@ -71,6 +71,32 @@ func UpdateProject(devkitRoot, projectName string) error {
 	return cmd.Run()
 }
 
+// CreateReleaseTag creates an annotated tag at HEAD and optionally pushes to origin.
+func CreateReleaseTag(devkitRoot, projectName, tagName, message string, push bool) error {
+	projectDir := filepath.Join(devkitRoot, "projects", projectName)
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		return fmt.Errorf("project not cloned: clone the project first")
+	}
+	if err := git.CreateTag(projectDir, tagName, message); err != nil {
+		return err
+	}
+	if push {
+		if err := git.PushTag(projectDir, tagName); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ListProjectTags returns tag names for the project. Returns empty list if project is not cloned.
+func ListProjectTags(devkitRoot, projectName string) ([]string, error) {
+	projectDir := filepath.Join(devkitRoot, "projects", projectName)
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		return nil, nil
+	}
+	return git.ListTags(projectDir)
+}
+
 // OpenProject opens a project in the editor
 func OpenProject(devkitRoot, projectName string) error {
 	editor, err := detectEditor()

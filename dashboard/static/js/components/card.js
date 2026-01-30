@@ -1,167 +1,198 @@
-// Card component
+// Card component – presentational; buttons use data-action for delegated handling
 
 import { createStatusBadge, createOperationBadge } from './badge.js';
 import { createIcon } from '../utils.js';
 
 /**
- * Create project card
+ * Create project card: primary "Open" + "Actions" dropdown (Update, Test, Build, Create tag, View logs)
  */
 export function createProjectCard(project, operationStatus = null) {
     const status = project.status || 'unknown';
     const isCloned = project.branch && project.branch !== '-';
     const opStatus = operationStatus || project.operationStatus || { type: null, running: false };
-    
+
     const card = document.createElement('div');
     card.className = 'project-card animate-fade-in';
     card.id = `project-card-${project.name}`;
-    
-    // Header
+
     const header = document.createElement('div');
     header.className = 'card-header';
-    header.innerHTML = `
-        <div class="card-title">${project.name}</div>
-    `;
+    header.innerHTML = `<div class="card-title">${project.name}</div>`;
     const statusBadge = createStatusBadge(status);
     statusBadge.id = `status-${project.name}`;
     header.appendChild(statusBadge);
-    
-    // Info
+
     const info = document.createElement('div');
-    info.className = 'card-info';
+    info.className = 'card-info card-meta';
     info.innerHTML = `
-        <div class="card-info-item">
-            <strong>Branch:</strong> <span id="branch-${project.name}">${project.branch || '-'}</span>
+        <div class="card-meta-row">
+            <span class="card-meta-item"><strong>Branch</strong> ${project.branch || '–'}</span>
+            <span class="card-meta-item"><strong>Status</strong> ${getStatusText(status)}</span>
         </div>
-        <div class="card-info-item">
-            <strong>Commit:</strong> <span id="commit-${project.name}">${project.commit || '-'}</span>
-        </div>
-        <div class="card-info-item">
-            <strong>Status:</strong> <span id="dirty-${project.name}">${getStatusText(status)}</span>
+        <div class="card-meta-row card-meta-commit" title="${(project.commit || '').slice(0, 40)}">
+            <span class="card-meta-commit-text">${project.commit ? project.commit.slice(0, 8) + (project.commit.length > 8 ? '…' : '') : '–'}</span>
         </div>
     `;
-    
-    // Operation status
+
     if (opStatus.running) {
         const opBadge = document.createElement('div');
         opBadge.className = 'card-info-item operation-status';
         opBadge.appendChild(createOperationBadge(opStatus.type));
         info.appendChild(opBadge);
     }
-    
-    // Actions
+
     const actions = document.createElement('div');
     actions.className = 'card-actions';
-    
+
     if (!isCloned) {
-        const cloneBtn = createButton('Clone', 'btn-success', () => {
-            if (window.cloneProject) window.cloneProject(project.name);
-        });
-        actions.appendChild(cloneBtn);
+        actions.appendChild(createActionButton('Clone project', 'btn btn-primary btn-block', 'project:clone', { project: project.name }));
     } else {
-        const updateBtn = createButton('Update', 'btn-primary', () => {
-            if (window.updateProject) window.updateProject(project.name);
-        }, opStatus.running);
-        const testBtn = createButton('Test', 'btn-secondary', () => {
-            if (window.testProject) window.testProject(project.name);
-        }, opStatus.running);
-        const buildBtn = createButton('Build', 'btn-secondary', () => {
-            if (window.buildProject) window.buildProject(project.name);
-        }, opStatus.running);
-        const viewLogsBtn = createButton('View Logs', 'btn-info', () => {
-            if (window.viewProjectLogs) window.viewProjectLogs(project.name);
+        actions.className = 'card-actions card-actions-split';
+        const primary = document.createElement('div');
+        primary.className = 'card-actions-primary';
+        const openBtn = createActionButton('Open in editor', 'btn btn-primary', 'project:open', { project: project.name }, opStatus.running);
+        openBtn.title = 'Open in Cursor or VS Code';
+        openBtn.prepend(createIcon('folder', 'icon icon-sm'));
+        primary.appendChild(openBtn);
+
+        const moreWrap = document.createElement('div');
+        moreWrap.className = 'card-actions-more';
+        const moreBtn = document.createElement('button');
+        moreBtn.type = 'button';
+        moreBtn.className = 'btn btn-secondary btn-icon-only card-dropdown-trigger';
+        moreBtn.setAttribute('data-action', 'dropdown:toggle');
+        moreBtn.setAttribute('aria-label', 'More actions');
+        moreBtn.setAttribute('aria-haspopup', 'true');
+        moreBtn.setAttribute('aria-expanded', 'false');
+        moreBtn.innerHTML = '<span aria-hidden="true">⋯</span>';
+
+        const menu = document.createElement('div');
+        menu.className = 'card-dropdown-menu';
+        menu.setAttribute('role', 'menu');
+
+        const menuItems = [
+            { label: 'Update', action: 'project:update', icon: 'refresh', payload: { project: project.name } },
+            { label: 'Run tests', action: 'project:test', icon: 'play', payload: { project: project.name } },
+            { label: 'Build', action: 'project:build', icon: 'build', payload: { project: project.name } },
+            { label: 'Create release tag', action: 'project:createTag', icon: 'tag', payload: { project: project.name, commit: project.commit || '-' } },
+            { label: 'View logs', action: 'project:viewLogs', icon: 'eye', payload: { project: project.name } }
+        ];
+
+        menuItems.forEach(({ label, action, icon, payload }) => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'card-dropdown-item';
+            item.setAttribute('role', 'menuitem');
+            item.dataset.action = action;
+            if (payload.project) item.dataset.project = payload.project;
+            if (payload.commit !== undefined) item.dataset.commit = payload.commit;
+            item.innerHTML = `<span class="card-dropdown-item-icon" aria-hidden="true">${getIconSvg(icon)}</span><span>${label}</span>`;
+            if (action === 'project:viewLogs') {
+                item.id = `view-logs-${project.name}`;
+                item.style.display = 'none';
+            }
+            menu.appendChild(item);
         });
-        viewLogsBtn.id = `view-logs-${project.name}`;
-        viewLogsBtn.style.display = (opStatus.running ? 'inline-flex' : 'none');
-        const openBtn = createButton('Open', 'btn-info', () => {
-            if (window.openProjectInEditor) window.openProjectInEditor(project.name);
-        }, opStatus.running);
-        openBtn.title = 'Open in Cursor or VSCode';
-        
-        actions.appendChild(updateBtn);
-        actions.appendChild(testBtn);
-        actions.appendChild(buildBtn);
-        actions.appendChild(viewLogsBtn);
-        actions.appendChild(openBtn);
+
+        moreWrap.appendChild(moreBtn);
+        moreWrap.appendChild(menu);
+        primary.appendChild(moreWrap);
+        actions.appendChild(primary);
     }
-    
+
     card.appendChild(header);
     card.appendChild(info);
     card.appendChild(actions);
-    
+
     return card;
 }
 
+function getIconSvg(name) {
+    const icons = {
+        refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>',
+        play: '<path d="M8 5v14l11-7z" fill="currentColor"/>',
+        build: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/>',
+        tag: '<path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/>',
+        eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>'
+    };
+    const path = icons[name] || '';
+    return `<svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">${path}</svg>`;
+}
+
 /**
- * Create service card
+ * Create service card: primary Start/Stop + compact secondary (Refresh, Logs)
  */
 export function createServiceCard(service) {
     const status = service.status || 'unknown';
-    
+
     const card = document.createElement('div');
     card.className = 'service-card animate-fade-in';
-    
-    // Header
+
     const header = document.createElement('div');
     header.className = 'card-header';
     header.innerHTML = `<div class="card-title">${service.name}</div>`;
     const statusBadge = createStatusBadge(status);
     statusBadge.id = `service-status-${service.name}`;
     header.appendChild(statusBadge);
-    
-    // Info
+
     const info = document.createElement('div');
-    info.className = 'card-info';
+    info.className = 'card-info card-meta';
     info.innerHTML = `
-        <div class="card-info-item"><strong>Port:</strong> ${service.port}</div>
-        <div class="card-info-item"><strong>Status:</strong> ${getStatusText(status)}</div>
+        <div class="card-meta-row">
+            <span class="card-meta-item">Port <strong>${service.port}</strong></span>
+            <span class="card-meta-item">${getStatusText(status)}</span>
+        </div>
     `;
-    
-    // Actions
+
     const actions = document.createElement('div');
-    actions.className = 'card-actions';
-    
-    const startBtn = createButton('Start', 'btn-success', () => {
-        if (window.startService) window.startService(service.name);
-    }, status === 'running');
-    const stopBtn = createButton('Stop', 'btn-danger', () => {
-        if (window.stopService) window.stopService(service.name);
-    }, status === 'stopped');
-    const refreshBtn = createButton('Refresh', 'btn-secondary', () => {
-        if (window.checkService) window.checkService(service.name, service.port);
-    });
-    const logsBtn = createButton('View Logs', 'btn-info', () => {
-        if (window.viewServiceLogs) window.viewServiceLogs(service.name);
-    });
-    
-    actions.appendChild(startBtn);
-    actions.appendChild(stopBtn);
-    actions.appendChild(refreshBtn);
-    actions.appendChild(logsBtn);
-    
+    actions.className = 'card-actions card-actions-split';
+
+    const primary = document.createElement('div');
+    primary.className = 'card-actions-primary';
+
+    const startBtn = createActionButton('Start', 'btn btn-success', 'service:start', { service: service.name }, status === 'running');
+    const stopBtn = createActionButton('Stop', 'btn btn-danger', 'service:stop', { service: service.name }, status === 'stopped');
+    primary.appendChild(startBtn);
+    primary.appendChild(stopBtn);
+
+    const secondary = document.createElement('div');
+    secondary.className = 'card-actions-secondary';
+    const refreshBtn = createActionButton('', 'btn btn-secondary btn-icon-only', 'service:check', { service: service.name, port: service.port });
+    refreshBtn.setAttribute('aria-label', 'Refresh status');
+    refreshBtn.appendChild(createIcon('refresh', 'icon icon-sm'));
+    const logsBtn = createActionButton('', 'btn btn-secondary btn-icon-only', 'service:viewLogs', { service: service.name });
+    logsBtn.setAttribute('aria-label', 'View logs');
+    logsBtn.appendChild(createIcon('eye', 'icon icon-sm'));
+    secondary.appendChild(refreshBtn);
+    secondary.appendChild(logsBtn);
+
+    actions.appendChild(primary);
+    actions.appendChild(secondary);
+
     card.appendChild(header);
     card.appendChild(info);
     card.appendChild(actions);
-    
+
     return card;
 }
 
 /**
- * Create button element
+ * Create a button that triggers an action via delegation (data-action + data-project / data-service).
  */
-function createButton(text, className, onClick, disabled = false) {
+function createActionButton(text, className, actionKey, payload, disabled = false) {
     const btn = document.createElement('button');
-    btn.className = `btn ${className}`;
+    btn.type = 'button';
+    btn.className = className;
     btn.textContent = text;
+    btn.dataset.action = actionKey;
+    if (payload.project) btn.dataset.project = payload.project;
+    if (payload.service) btn.dataset.service = payload.service;
+    if (payload.port !== undefined) btn.dataset.port = String(payload.port);
+    if (payload.commit !== undefined) btn.dataset.commit = payload.commit;
     btn.disabled = disabled;
-    if (onClick) {
-        btn.addEventListener('click', onClick);
-    }
     return btn;
 }
 
-/**
- * Get status text
- */
 function getStatusText(status) {
     const textMap = {
         'clean': 'Clean',

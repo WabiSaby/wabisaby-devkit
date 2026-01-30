@@ -47,6 +47,8 @@ func NewRouter(projectHandler *handler.ProjectHandler, serviceHandler *handler.S
 		r.Post("/{name}/open", func(w http.ResponseWriter, r *http.Request) {
 			projectHandler.HandleProjectAction(w, r)
 		})
+		r.Post("/{name}/tag", projectHandler.HandleCreateTag)
+		r.Get("/{name}/tags", projectHandler.HandleListTags)
 		r.Get("/{name}/{action}/stream", projectHandler.HandleProjectStream)
 	})
 

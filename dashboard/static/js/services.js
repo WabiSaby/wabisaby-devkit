@@ -16,17 +16,21 @@ export async function loadServices() {
     const grid = document.getElementById('services-grid');
     if (!grid) return;
     
-    grid.innerHTML = '<div class="skeleton" style="height: 200px;"></div>';
+    grid.innerHTML = '<div class="skeleton skeleton-placeholder"></div>';
     
     try {
         const result = await servicesAPI.list();
         
         if (result.success && result.data) {
             grid.innerHTML = '';
-            result.data.forEach(service => {
-                const card = createServiceCard(service);
-                grid.appendChild(card);
-            });
+            if (result.data.length === 0) {
+                grid.innerHTML = '<div class="empty-state">No infrastructure services configured.</div>';
+            } else {
+                result.data.forEach(service => {
+                    const card = createServiceCard(service);
+                    grid.appendChild(card);
+                });
+            }
         }
     } catch (error) {
         console.error('Failed to load infrastructure:', error);
@@ -265,17 +269,20 @@ export function toggleLogsPause() {
 }
 
 /**
- * Close logs modal
+ * Cleanup when logs modal is closed (EventSource, state). Used by modal manager on hide.
  */
-export function closeLogsModal() {
-    modalManager.hide('logs-modal');
-    
-    // Close EventSource connection
+export function cleanupLogsModal() {
     if (eventSource) {
         eventSource.close();
         eventSource = null;
     }
-    
     currentServiceName = null;
     logsPaused = false;
+}
+
+/**
+ * Close logs modal (hide + cleanup).
+ */
+export function closeLogsModal() {
+    modalManager.hide('logs-modal');
 }

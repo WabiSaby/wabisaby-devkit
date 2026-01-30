@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,8 +12,16 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/wabisaby/devkit-dashboard/internal/git"
 	"github.com/wabisaby/devkit-dashboard/internal/service"
 )
+
+// CreateTagRequest is the JSON body for creating a release tag.
+type CreateTagRequest struct {
+	TagName string `json:"tag"`
+	Message string `json:"message"`
+	Push    bool   `json:"push"`
+}
 
 type ProjectHandler struct {
 	devkitRoot string
@@ -30,6 +39,58 @@ func (h *ProjectHandler) ListProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	SendSuccess(w, projects)
+}
+
+// HandleCreateTag creates an annotated tag at HEAD and optionally pushes to origin.
+func (h *ProjectHandler) HandleCreateTag(w http.ResponseWriter, r *http.Request) {
+	projectName := chi.URLParam(r, "name")
+	if projectName == "" {
+		SendError(w, "project name is required", http.StatusBadRequest)
+		return
+	}
+	var req CreateTagRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		SendError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	tagName := strings.TrimSpace(req.TagName)
+	if err := git.ValidateTagName(tagName); err != nil {
+		SendError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	message := strings.TrimSpace(req.Message)
+	if message == "" {
+		message = "Release " + tagName
+	}
+	err := service.CreateReleaseTag(h.devkitRoot, projectName, tagName, message, req.Push)
+	if err != nil {
+		if err.Error() == "tag already exists" {
+			SendError(w, err.Error(), http.StatusConflict)
+			return
+		}
+		SendError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	msg := "Tag " + tagName + " created"
+	if req.Push {
+		msg += " and pushed to remote"
+	}
+	SendSuccess(w, map[string]string{"message": msg})
+}
+
+// HandleListTags returns existing tag names for the project.
+func (h *ProjectHandler) HandleListTags(w http.ResponseWriter, r *http.Request) {
+	projectName := chi.URLParam(r, "name")
+	if projectName == "" {
+		SendError(w, "project name is required", http.StatusBadRequest)
+		return
+	}
+	tags, err := service.ListProjectTags(h.devkitRoot, projectName)
+	if err != nil {
+		SendError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	SendSuccess(w, map[string]interface{}{"tags": tags})
 }
 
 // HandleProjectAction handles project actions (clone, update, test, build, open)
@@ -82,7 +143,7 @@ func (h *ProjectHandler) HandleProjectAction(w http.ResponseWriter, r *http.Requ
 			SendError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		SendSuccess(w, map[string]string{"message": fmt.Sprintf("Opening workspace")})
+		SendSuccess(w, map[string]string{"message": "Opening workspace"})
 		return
 	default:
 		SendError(w, "Unknown action", http.StatusBadRequest)
