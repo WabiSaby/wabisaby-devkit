@@ -12,10 +12,10 @@ log_header "Syncing Submodules to DevKit"
 CHANGED_SUBMODULES=()
 for project in "${PROJECTS[@]}"; do
     if project_exists "$project"; then
-        local project_dir=$(get_project_dir "$project")
+        project_dir=$(get_project_dir "$project")
         # Check if submodule commit differs from what DevKit references
-        local current_commit=$(cd "$project_dir" && git rev-parse HEAD 2>/dev/null)
-        local devkit_commit=$(cd "$DEVKIT_ROOT" && git ls-tree HEAD "$project" 2>/dev/null | awk '{print $3}')
+        current_commit=$(cd "$project_dir" && git rev-parse HEAD 2>/dev/null)
+        devkit_commit=$(cd "$DEVKIT_ROOT" && git ls-tree HEAD "$(get_submodule_path "$project")" 2>/dev/null | awk '{print $3}')
         
         if [ "$current_commit" != "$devkit_commit" ]; then
             CHANGED_SUBMODULES+=("$project")
@@ -31,8 +31,8 @@ fi
 # Show what will be synced
 log_info "Submodules with changes:"
 for project in "${CHANGED_SUBMODULES[@]}"; do
-    local commit=$(get_submodule_commit "$project")
-    local branch=$(get_submodule_branch "$project")
+    commit=$(get_submodule_commit "$project")
+    branch=$(get_submodule_branch "$project")
     echo "  - $project ($branch @ $commit)"
 done
 
@@ -50,7 +50,7 @@ fi
 # Stage submodule changes
 for project in "${CHANGED_SUBMODULES[@]}"; do
     log_info "Staging $project..."
-    (cd "$DEVKIT_ROOT" && git add "$project")
+    (cd "$DEVKIT_ROOT" && git add "$(get_submodule_path "$project")")
 done
 
 # Commit if there are staged changes

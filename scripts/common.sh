@@ -73,10 +73,19 @@ check_prerequisites() {
     return 0
 }
 
-# Get project directory
+# Submodules live under projects/ (see .gitmodules)
+SUBMODULES_DIR="projects"
+
+# Get project directory (absolute path)
 get_project_dir() {
     local project=$1
-    echo "$DEVKIT_ROOT/$project"
+    echo "$DEVKIT_ROOT/$SUBMODULES_DIR/$project"
+}
+
+# Get submodule path for git commands (e.g. projects/wabisaby-core)
+get_submodule_path() {
+    local project=$1
+    echo "$SUBMODULES_DIR/$project"
 }
 
 # Check if project exists
@@ -119,7 +128,7 @@ get_submodule_status() {
         return
     fi
     
-    (cd "$DEVKIT_ROOT" && git submodule status "$project" 2>/dev/null | head -1 | cut -c1)
+    (cd "$DEVKIT_ROOT" && git submodule status "$(get_submodule_path "$project")" 2>/dev/null | head -1 | cut -c1)
 }
 
 # Check if submodule has uncommitted changes

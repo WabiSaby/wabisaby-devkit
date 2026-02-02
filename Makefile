@@ -1,27 +1,36 @@
 # WabiSaby DevKit Makefile
-# Convenience commands for DevKit management
+# Repo-level commands when developing the DevKit repo. End users manage projects
+# (clone, update, sync) in the DevKit app; projects dir is configured there.
+# App build/run: app/Makefile (Wails desktop app).
 
-.PHONY: help status update sync test build format lint setup start docker-up docker-down docker-status clean
+.PHONY: help status update sync test build format lint setup start app-build docker-up docker-down docker-status clean
 
 # Default target
 help:
 	@echo "WabiSaby DevKit - Available commands:"
 	@echo ""
-	@echo "  make status       - Show submodule status"
-	@echo "  make update       - Update all submodules"
-	@echo "  make sync         - Sync submodule commits to DevKit"
+	@echo "  make start        - Run DevKit app (Wails dev mode)"
+	@echo "  make app-build    - Build DevKit desktop app (see app/Makefile)"
+	@echo ""
+	@echo "  make docker-up    - Start Docker services"
+	@echo "  make docker-down  - Stop Docker services"
+	@echo "  make docker-status - Show Docker service status"
+	@echo ""
 	@echo "  make test         - Run tests in all projects"
 	@echo "  make build        - Build all projects"
 	@echo "  make format       - Format code in all projects"
 	@echo "  make lint         - Lint all projects"
 	@echo "  make setup        - Initial development setup"
-	@echo "  make start        - Start web dashboard"
-	@echo "  make docker-up    - Start Docker services"
-	@echo "  make docker-down  - Stop Docker services"
-	@echo "  make docker-status - Show Docker service status"
+	@echo ""
+	@echo "  make status       - Show submodule status (DevKit repo only)"
+	@echo "  make update       - Update all submodules (DevKit repo only)"
+	@echo "  make sync         - Sync submodule commits (DevKit repo only)"
+	@echo ""
 	@echo "  make clean        - Clean build artifacts"
+	@echo ""
+	@echo "Project management (clone, update, sync) for end users is done in the DevKit app."
 
-# Submodule management
+# Submodule management (only when developing this repo with WABISABY_DEVKIT_ROOT set here)
 status:
 	@./scripts/submodule-status.sh
 
@@ -51,13 +60,14 @@ lint:
 setup:
 	@./scripts/dev-setup.sh
 
-# Dashboard default port (must match dashboard/internal/config.DefaultPort)
-DASHBOARD_PORT ?= 8081
-
+# Run the DevKit desktop app (Wails dev mode; build with: make -C app build)
 start:
-	@echo "Starting DevKit dashboard..."
-	@echo "Open http://localhost:$(DASHBOARD_PORT) in your browser"
-	@cd dashboard && PORT=$(DASHBOARD_PORT) go run ./cmd/server
+	@echo "Starting DevKit app (Wails)..."
+	@$(MAKE) -C app dev
+
+# Build the desktop app (convenience from repo root)
+app-build:
+	@$(MAKE) -C app build
 
 # Docker services
 docker-up:

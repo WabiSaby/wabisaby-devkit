@@ -1,8 +1,5 @@
 version: '3.8'
 
-# WabiSaby DevKit - Unified Docker Compose
-# Infrastructure services for local development
-
 services:
   postgres:
     image: postgres:16-alpine

@@ -1,0 +1,242 @@
+// App shell – BEM: app (block), app__titlebar, app__body, app__sidebar, app__main, etc.
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-size: 14px;
+}
+
+.app__titlebar {
+  flex-shrink: 0;
+  height: var(--title-bar-height);
+  display: flex;
+  align-items: center;
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+  background-color: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: var(--glass-blur);
+  --wails-draggable: drag; // Wails v2: window drag handle (macOS)
+}
+
+.app--no-titlebar .app__titlebar {
+  height: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+}
+
+.app__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  position: relative; // Context for absolute children if needed
+}
+
+.app__sidebar {
+  width: 17rem;
+  min-width: 17rem;
+  flex-shrink: 0;
+  background-color: var(--bg-sidebar);
+  backdrop-filter: var(--glass-blur);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.3s var(--ease-spring), min-width 0.3s var(--ease-spring);
+  z-index: 10;
+}
+
+// Collapsed state: Mini Icon Sidebar
+.app--sidebar-collapsed .app__sidebar {
+  width: 4.5rem;
+  min-width: 4.5rem;
+}
+
+.app__sidebar-header {
+  height: var(--space-14);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+// When collapsed, center the content in header
+.app--sidebar-collapsed .app__sidebar-header {
+  justify-content: center;
+  padding: 0;
+}
+
+// Hide brand text when collapsed
+.app__sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.2s;
+}
+
+.app--sidebar-collapsed .app__sidebar-title {
+  display: none;
+}
+
+.app--sidebar-collapsed .app__sidebar-brand {
+  display: none; // Completely hide brand, show only toggle button centered
+}
+
+// Nav items
+.app__sidebar-nav {
+  flex: 1;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  overflow-x: hidden;
+}
+
+.app__sidebar-footer {
+  padding: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.app__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: transparent; // Let body gradient show through
+  overflow: hidden;
+  position: relative;
+}
+
+.app__content {
+  flex: 1;
+  overflow: auto;
+  scroll-behavior: smooth;
+}
+
+// Nav item – BEM: nav-item, nav-item--active
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  text-align: left;
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+
+  &:hover {
+    background-color: hsla(224, 60%, 20%, 0.4);
+    color: var(--text-main);
+  }
+
+  &--active {
+    background-color: hsla(217, 91%, 60%, 0.1);
+    color: var(--color-primary);
+    font-weight: 600;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 16px;
+      background-color: var(--color-primary);
+      border-radius: 0 4px 4px 0;
+      box-shadow: 0 0 8px var(--color-primary);
+    }
+  }
+}
+
+// Hide labels in collapsed mode
+.app--sidebar-collapsed .nav-item {
+  justify-content: center;
+  padding: 0;
+}
+
+.app--sidebar-collapsed .nav-item span {
+  display: none;
+}
+
+.app--sidebar-collapsed .nav-item::before {
+  display: none; // Hide active indicator line in mini mode
+}
+
+.app--sidebar-collapsed .nav-item--active {
+  background-color: hsla(217, 91%, 60%, 0.2); // Stronger bg for active icon
+  color: var(--color-primary);
+}
+
+// Status Bar
+.app__statusbar {
+  flex-shrink: 0;
+  height: 28px;
+  background-color: transparent; // Let the body gradient show through, blending with content area
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  font-size: 11px;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.app__statusbar-left,
+.app__statusbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: default;
+
+  &.status-link {
+    cursor: pointer;
+    transition: color 0.15s;
+    text-decoration: none;
+    color: var(--text-muted);
+
+    &:hover {
+      color: var(--text-main);
+    }
+  }
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+
+  &--ready {
+    background-color: var(--color-success);
+    box-shadow: 0 0 4px var(--color-success);
+  }
+
+  &--busy {
+    background-color: var(--color-warning);
+  }
+
+  &--offline {
+    background-color: var(--text-muted);
+  }
+}

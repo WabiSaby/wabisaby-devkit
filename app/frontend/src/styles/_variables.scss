@@ -1,0 +1,72 @@
+// Theme and spacing – BEM uses these via var() in components
+:root {
+  // Core Palette (HSL)
+  --h-primary: 217;
+  --s-primary: 91%;
+  --l-primary: 60%;
+  --h-bg: 224;
+  --s-bg: 71%;
+  --l-bg: 4%;
+
+  // Semantic Colors
+  --bg-app: hsl(var(--h-bg), var(--s-bg), var(--l-bg));
+  --bg-sidebar: hsla(224, 71%, 4%, 0.85); // Glassy
+  --bg-card: hsla(224, 60%, 15%, 0.4);
+  --bg-card-hover: hsla(224, 60%, 20%, 0.6);
+  --bg-overlay: hsla(0, 0%, 0%, 0.7);
+
+  // Accents
+  --color-primary: hsl(var(--h-primary), var(--s-primary), var(--l-primary));
+  --color-primary-hover: hsl(var(--h-primary), var(--s-primary), 65%);
+  --color-primary-glow: hsla(var(--h-primary), var(--s-primary), var(--l-primary), 0.5);
+
+  --color-danger: #f87171;
+  --color-success: #4ade80;
+  --color-warning: #facc15;
+  --color-info: #60a5fa;
+
+  // Text
+  --text-main: #f8fafc; // Slate-50
+  --text-muted: #94a3b8; // Slate-400
+  --text-sub: #cbd5e1; // Slate-300
+  --text-on-primary: #ffffff;
+
+  // Borders
+  --border-subtle: hsla(224, 20%, 30%, 0.3);
+  --border-highlight: hsla(224, 20%, 50%, 0.4);
+  --border-active: var(--color-primary);
+
+  // Radii
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  // Shadows & Glows
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-glow: 0 0 15px var(--color-primary-glow);
+  --glass-blur: blur(12px);
+
+  // Typography
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  // Spacing
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-14: 3.5rem;
+
+  // MacOS Safe Area
+  --title-bar-height: max(32px, env(safe-area-inset-top, 32px));
+
+  // Transitions
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275); // Bouncy
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}

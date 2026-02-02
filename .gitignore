@@ -49,3 +49,15 @@ temp/
 *.sublime-project
 *.sublime-workspace
 *.code-workspace
+
+# DevKit app (Wails)
+app/frontend/node_modules/
+app/frontend/dist/
+app/build/
+app/bin/
+*.app
+app/wails.json
+app/*-darwin
+app/*-linux
+app/*-windows
+app/devkit-dashboard

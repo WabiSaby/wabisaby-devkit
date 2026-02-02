@@ -10,10 +10,10 @@ log_header "Submodule Status"
 
 # Get submodule info
 for project in "${PROJECTS[@]}"; do
-    local status=$(get_submodule_status "$project")
-    local branch=$(get_submodule_branch "$project")
-    local commit=$(get_submodule_commit "$project")
-    local dirty=""
+    status=$(get_submodule_status "$project")
+    branch=$(get_submodule_branch "$project")
+    commit=$(get_submodule_commit "$project")
+    dirty=""
     
     if submodule_is_dirty "$project"; then
         dirty="${RED}*${NC}"

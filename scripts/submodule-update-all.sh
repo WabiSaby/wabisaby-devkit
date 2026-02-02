@@ -19,7 +19,7 @@ if [ ${#UPDATE_SPECIFIC[@]} -gt 0 ]; then
     for project in "${UPDATE_SPECIFIC[@]}"; do
         if project_exists "$project"; then
             log_info "Updating $project..."
-            (cd "$DEVKIT_ROOT" && git submodule update --remote "$project")
+            (cd "$DEVKIT_ROOT" && git submodule update --remote "$(get_submodule_path "$project")")
             log_success "Updated $project"
         else
             log_error "Project $project not found"
