@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { services, events } from '../lib/wails';
 import { StreamModal } from '../components/StreamModal';
+import { EmptyState } from '../components/EmptyState';
 import { StartStopAllButtons } from '../components/StartStopAllButtons';
 import { RefreshCw, Play, Square, List, ExternalLink, Server } from 'lucide-react';
 
@@ -105,7 +106,13 @@ export function InfrastructureView() {
       {loading && list.length === 0 ? (
         <div className="view__loading">Loading services...</div>
       ) : list.length === 0 ? (
-        <div className="view__empty">No Docker services configured.</div>
+        <div className="view__body">
+          <EmptyState
+            icon={<Server size={44} />}
+            title="No Docker services configured"
+            subtitle="When services are set up, they’ll appear here for quick start/stop actions."
+          />
+        </div>
       ) : (
         <div className="view__body">
           <div className="view__grid view__grid--sm">

@@ -26,6 +26,22 @@ export namespace model {
 	        this.error = source["error"];
 	    }
 	}
+	export class Dependency {
+	    name: string;
+	    version: string;
+	    type: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Dependency(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.version = source["version"];
+	        this.type = source["type"];
+	    }
+	}
 	export class EnvVar {
 	    name: string;
 	    isSet: boolean;

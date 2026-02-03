@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { events } from '../lib/wails';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Activity } from 'lucide-react';
+import { EmptyState } from '../components/EmptyState';
 
 const STREAM_EVENTS = [
   'devkit:project:stream',
@@ -58,9 +59,11 @@ export function ActivityView() {
       <div className="view__body">
         <div className="activity-log">
           {entries.length === 0 && (
-            <p style={{ color: 'var(--text-muted)' }}>
-              No activity yet. Run a project build/test, service logs, or migration/proto to see output here.
-            </p>
+            <EmptyState
+              icon={<Activity size={44} />}
+              title="No activity yet"
+              subtitle="Run a project build/test, service logs, or migration/proto to see output here."
+            />
           )}
           {entries.map((e, i) => (
             <div key={i} className="activity-log__entry">

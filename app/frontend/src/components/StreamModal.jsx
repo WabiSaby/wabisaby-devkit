@@ -9,9 +9,9 @@ export function StreamModal({ title, lines, onClose, isActive }) {
   }, [lines]);
 
   return (
-    <div className="modal" role="dialog" aria-modal="true" onClick={onClose}>
+    <div className="modal stream-modal" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="modal__backdrop" aria-hidden />
-      <div className="modal__dialog" onClick={(e) => e.stopPropagation()}>
+      <div className="modal__dialog stream-modal__dialog" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
           <h3 className="modal__title">{title}</h3>
           <div className="modal__actions">

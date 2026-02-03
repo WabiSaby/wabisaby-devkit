@@ -47,6 +47,11 @@
   --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
   --shadow-glow: 0 0 15px var(--color-primary-glow);
   --glass-blur: blur(12px);
+  --glass-panel-bg: hsla(224, 40%, 10%, 0.65);
+  --glass-panel-border: rgba(255, 255, 255, 0.1);
+  --glass-backdrop-blur: blur(16px);
+  --glass-stage-bg: hsla(224, 50%, 6%, 0.35);
+  --glass-pill-bg: hsla(224, 40%, 14%, 0.5);
 
   // Typography
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;

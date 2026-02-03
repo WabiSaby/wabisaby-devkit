@@ -23,6 +23,7 @@ export const projects = {
     stopBulkStream: (action) => getApp()?.StopBulkProjectStream(action),
     createTag: (name, tag, msg, push) => callForSuccess(getApp()?.CreateTag(name, tag, msg, push)),
     listTags: (name) => callForSuccess(getApp()?.ListTags(name)),
+    dependencies: (name) => callForSuccess(getApp()?.ListProjectDependencies(name)),
 };
 
 export const services = {

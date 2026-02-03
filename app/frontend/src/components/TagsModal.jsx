@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Tag } from 'lucide-react';
 import { projects } from '../lib/wails';
 
 export function TagsModal({ projectName, onClose }) {
@@ -54,11 +54,16 @@ export function TagsModal({ projectName, onClose }) {
   };
 
   return (
-    <div className="modal" role="dialog" aria-modal="true" onClick={onClose}>
+    <div className="modal tags-modal" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="modal__backdrop" aria-hidden />
-      <div className="modal__dialog" style={{ maxWidth: '28rem' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal__dialog tags-modal__dialog" style={{ maxWidth: '30rem' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
-          <h3 className="modal__title">Tags — {projectName}</h3>
+          <h3 className="modal__title tags-modal__title">
+            <span className="tags-modal__title-icon">
+              <Tag size={18} />
+            </span>
+            Tags — {projectName}
+          </h3>
           <button type="button" onClick={onClose} className="modal__close" aria-label="Close">
             <X size={18} />
           </button>
@@ -72,9 +77,12 @@ export function TagsModal({ projectName, onClose }) {
               {tags.length === 0 ? (
                 <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>No tags yet.</p>
               ) : (
-                <ul className="modal__list">
+                <ul className="modal__list tags-modal__tag-list">
                   {tags.map((t, i) => (
-                    <li key={i}>{typeof t === 'string' ? t : t.name || t}</li>
+                    <li key={i} className="tags-modal__tag">
+                      <Tag size={14} />
+                      <span>{typeof t === 'string' ? t : t.name || t}</span>
+                    </li>
                   ))}
                 </ul>
               )}

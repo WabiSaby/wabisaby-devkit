@@ -10,6 +10,13 @@ type Project struct {
 	Language string `json:"language,omitempty"`
 }
 
+// Dependency represents a project dependency
+type Dependency struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	Type    string `json:"type"` // "direct", "indirect", "production", "dev"
+}
+
 // Response represents a generic API response
 type Response struct {
 	Success bool        `json:"success"`

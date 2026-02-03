@@ -3,7 +3,9 @@ import { projects as projectsAPI, events, submodule } from '../lib/wails';
 import { ProjectCard } from '../components/ProjectCard';
 import { StreamModal } from '../components/StreamModal';
 import { TagsModal } from '../components/TagsModal';
+import { DependencyGraph } from '../components/DependencyGraph';
 import { Skeleton } from '../components/Skeleton';
+import { EmptyState } from '../components/EmptyState';
 import { RefreshCw, GitMerge, X } from 'lucide-react';
 
 export function ProjectsView() {
@@ -13,6 +15,7 @@ export function ProjectsView() {
     const [streamLines, setStreamLines] = useState([]);
     const [streamActive, setStreamActive] = useState(false);
     const [tagsProject, setTagsProject] = useState(null);
+    const [graphProject, setGraphProject] = useState(null);
     const [submoduleNeedsSync, setSubmoduleNeedsSync] = useState(null);
     const [submoduleSyncing, setSubmoduleSyncing] = useState(false);
     const [submoduleBannerDismissed, setSubmoduleBannerDismissed] = useState(false);
@@ -75,6 +78,11 @@ export function ProjectsView() {
 
         if (action === 'tags') {
             setTagsProject(name);
+            return;
+        }
+
+        if (action === 'graph') {
+            setGraphProject(name);
             return;
         }
 
@@ -178,6 +186,13 @@ export function ProjectsView() {
                         ))}
                     </div>
                 </div>
+            ) : data.length === 0 ? (
+                <div className="view__body">
+                    <EmptyState
+                        title="No active projects yet"
+                        subtitle="Clone a project into the devkit to see it listed here."
+                    />
+                </div>
             ) : (
                 <div className="view__body">
                     <div className="view__grid">
@@ -199,6 +214,10 @@ export function ProjectsView() {
 
             {tagsProject && (
                 <TagsModal projectName={tagsProject} onClose={() => setTagsProject(null)} />
+            )}
+
+            {graphProject && (
+                <DependencyGraph projectName={graphProject} onClose={() => setGraphProject(null)} />
             )}
         </div>
     );

@@ -136,6 +136,11 @@ func (a *App) ListProjects() ([]model.Project, error) {
 	return service.GetProjects(a.projectsDir)
 }
 
+// ListProjectDependencies returns dependencies for a project
+func (a *App) ListProjectDependencies(name string) ([]model.Dependency, error) {
+	return service.GetProjectDependencies(a.projectsDir, name)
+}
+
 // ProjectClone clones a project submodule
 func (a *App) ProjectClone(name string) (map[string]string, error) {
 	if err := service.CloneProject(a.devkitRoot, a.projectsDir, name); err != nil {

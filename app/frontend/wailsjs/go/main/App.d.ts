@@ -20,6 +20,8 @@ export function GetProtoStatus():Promise<model.ProtoStatus>;
 
 export function ListBackendServices():Promise<Array<model.BackendService>>;
 
+export function ListProjectDependencies(arg1:string):Promise<Array<model.Dependency>>;
+
 export function ListProjects():Promise<Array<model.Project>>;
 
 export function ListServices():Promise<Array<model.Service>>;

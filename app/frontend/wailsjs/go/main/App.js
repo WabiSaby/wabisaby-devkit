@@ -38,6 +38,10 @@ export function ListBackendServices() {
   return window['go']['main']['App']['ListBackendServices']();
 }
 
+export function ListProjectDependencies(arg1) {
+  return window['go']['main']['App']['ListProjectDependencies'](arg1);
+}
+
 export function ListProjects() {
   return window['go']['main']['App']['ListProjects']();
 }

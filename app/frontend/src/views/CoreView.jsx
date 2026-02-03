@@ -3,6 +3,7 @@ import { backend, events } from '../lib/wails';
 import { StreamModal } from '../components/StreamModal';
 import { Skeleton } from '../components/Skeleton';
 import { StartStopAllButtons } from '../components/StartStopAllButtons';
+import { EmptyState } from '../components/EmptyState';
 import { useToast } from '../hooks/useToast';
 import {
   RefreshCw,
@@ -198,18 +199,19 @@ export function ServicesView() {
           ))}
         </div>
       ) : backends.length === 0 ? (
-        <div className="view__empty">
-          <Server size={48} style={{ opacity: 0.2, marginBottom: 'var(--space-4)' }} />
-          No runnable services found.
+        <div className="view__body">
+          <EmptyState
+            icon={<Server size={44} />}
+            title="No runnable services found"
+            subtitle="When core services are available, you’ll see them listed here."
+          />
         </div>
       ) : (
         <div className="view__body">
           {Object.entries(groups).map(([groupName, services]) => (
             <div key={groupName} className="view__section">
-              <div className="view__section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-                <h3 className="view__section-title" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {groupName} Services
-                </h3>
+              <div className="view__section-header">
+                <h3 className="view__section-title">{groupName} Services</h3>
               </div>
 
               <div className="view__grid view__grid--sm">

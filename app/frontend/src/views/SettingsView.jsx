@@ -1,8 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { status, prerequisites, notices, submodule, env } from '../lib/wails';
-import { RefreshCw, CheckCircle, XCircle, AlertCircle, GitMerge, X } from 'lucide-react';
+import {
+  RefreshCw, CheckCircle, XCircle, AlertCircle, GitMerge, X,
+  Settings as SettingsIcon, Layout, Terminal, AlertTriangle
+} from 'lucide-react';
 
 export function SettingsView() {
+  const [activeTab, setActiveTab] = useState('status');
   const [appStatus, setAppStatus] = useState(null);
   const [prereqList, setPrereqList] = useState([]);
   const [noticesList, setNoticesList] = useState([]);
@@ -58,114 +62,181 @@ export function SettingsView() {
     }
   };
 
-  const showSubmoduleBanner =
-    submoduleNeedsSync &&
-    submoduleNeedsSync.length > 0 &&
-    !submoduleBannerDismissed &&
-    window.go;
+  const tabs = [
+    { id: 'status', label: 'General Status', icon: <SettingsIcon size={16} /> },
+    { id: 'prereqs', label: 'Prerequisites', icon: <Layout size={16} /> },
+    { id: 'notices', label: 'Notices', icon: <AlertTriangle size={16} />, count: noticesList.length },
+    { id: 'env', label: 'Environment', icon: <Terminal size={16} /> },
+  ];
 
   return (
-    <div className="view" style={{ maxWidth: '42rem' }}>
-      <div className="view__header">
-        <div className="view__title-group">
-          <h2 className="view__title">Settings</h2>
-          <p className="view__subtitle">Status, prerequisites, and notices.</p>
+    <div className="view view--has-sidebar">
+      <div className="view__sidebar">
+        <h2 className="view__sidebar-title">Settings</h2>
+        <nav className="view__sidebar-nav">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`nav-item ${activeTab === tab.id ? 'nav-item--active' : ''}`}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+              {tab.count > 0 && <span className="badge badge--warning ml-auto">{tab.count}</span>}
+            </button>
+          ))}
+        </nav>
+
+        <div className="view__sidebar-footer">
+          <button type="button" onClick={fetchAll} className="btn btn--secondary btn--full" disabled={loading}>
+            <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
+            <span>Refresh Data</span>
+          </button>
         </div>
-        <button type="button" onClick={fetchAll} className="btn btn--secondary">
-          <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
-          Refresh
-        </button>
       </div>
 
-      {showSubmoduleBanner && (
-        <div className="banner banner--warning">
-          <div className="banner__content">
-            <GitMerge size={18} style={{ color: 'var(--color-warning)' }} />
-            <span>Submodules need sync: {submoduleNeedsSync.join(', ')}</span>
-          </div>
-          <div className="banner__actions">
-            <button
-              type="button"
-              onClick={handleSubmoduleSync}
-              disabled={submoduleSyncing}
-              className="btn btn--primary"
-            >
-              {submoduleSyncing ? 'Syncing...' : 'Sync submodules'}
-            </button>
-            <button type="button" onClick={() => setSubmoduleBannerDismissed(true)} className="btn btn--ghost">
-              <X size={18} />
-            </button>
+      <div className="view__content-area">
+        <div className="view__header">
+          <div className="view__title-group">
+            <h2 className="view__title">{tabs.find(t => t.id === activeTab)?.label}</h2>
+            <p className="view__subtitle">Configure and monitor system status.</p>
           </div>
         </div>
-      )}
 
-      <div className="view__body">
-        {appStatus && typeof appStatus === 'object' && (
-          <section className="settings-section">
-            <h3 className="settings-section__title">Status</h3>
-            <div className="settings-section__content">
-              {appStatus.message ?? JSON.stringify(appStatus)}
-            </div>
-          </section>
-        )}
-
-        <section className="settings-section">
-          <h3 className="settings-section__title">Prerequisites</h3>
-          {prereqList.length === 0 && !loading ? (
-            <p className="view__subtitle">No prerequisites configured.</p>
-          ) : (
-            <ul className="settings-list">
-              {prereqList.map((p, i) => (
-                <li key={i} className="settings-list__item">
-                  {p.installed ? (
-                    <CheckCircle size={16} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
-                  ) : (
-                    <XCircle size={16} style={{ color: 'var(--color-danger)', flexShrink: 0 }} />
-                  )}
-                  <span style={{ color: 'var(--text-main)' }}>{p.name}</span>
-                  {p.version && <span className="view__subtitle">{p.version}</span>}
-                  {p.required && <span className="view__subtitle">(required)</span>}
-                  {p.message && <span className="notice-message">{p.message}</span>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="settings-section">
-          <h3 className="settings-section__title">Notices</h3>
-          {noticesList.length === 0 && !loading ? (
-            <p className="view__subtitle">No notices.</p>
-          ) : (
-            <ul className="settings-list">
-              {noticesList.map((n, i) => (
-                <li
-                  key={n.id ?? i}
-                  className={`settings-list__item ${
-                    n.severity === 'error' ? 'settings-list__item--error' : n.severity === 'warn' ? 'settings-list__item--warn' : ''
-                  }`}
+        <div className="view__body">
+          {submoduleNeedsSync && submoduleNeedsSync.length > 0 && !submoduleBannerDismissed && (
+            <div className="banner banner--warning mb-4">
+              <div className="banner__content">
+                <GitMerge size={18} style={{ color: 'var(--color-warning)' }} />
+                <span>Submodules need sync: {submoduleNeedsSync.join(', ')}</span>
+              </div>
+              <div className="banner__actions">
+                <button
+                  type="button"
+                  onClick={handleSubmoduleSync}
+                  disabled={submoduleSyncing}
+                  className="btn btn--primary"
                 >
-                  {n.severity === 'error' && <XCircle size={16} style={{ color: 'var(--color-danger)', flexShrink: 0, marginTop: '2px' }} />}
-                  {n.severity === 'warn' && <AlertCircle size={16} style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: '2px' }} />}
-                  <span style={{ color: 'var(--text-main)' }}>{n.message}</span>
-                  {n.actionKey && <span className="view__subtitle">({n.actionKey})</span>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {envStatus && (
-          <section className="settings-section">
-            <h3 className="settings-section__title">Environment</h3>
-            <div className="settings-section__content">
-              <p style={{ color: 'var(--text-sub)' }}>
-                .env: {envStatus.hasEnvFile ? 'Present' : 'Missing'}
-                {envStatus.hasExample && ' (example available)'}
-              </p>
+                  {submoduleSyncing ? 'Syncing...' : 'Sync submodules'}
+                </button>
+                <button type="button" onClick={() => setSubmoduleBannerDismissed(true)} className="btn btn--ghost">
+                  <X size={18} />
+                </button>
+              </div>
             </div>
-          </section>
-        )}
+          )}
+
+          {activeTab === 'status' && (
+            <section className="settings-section">
+              <div className="card">
+                <div className="card__header">
+                  <h3 className="card__title">System Status</h3>
+                </div>
+                <div className="card__body">
+                  {appStatus ? (
+                    <div className="status-row">
+                      <span className="status-label">Messsage:</span>
+                      <span className="status-value">{appStatus.message ?? JSON.stringify(appStatus)}</span>
+                    </div>
+                  ) : (
+                    <p className="text-sub">No status information available.</p>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'prereqs' && (
+            <div className="card">
+              <div className="card__body p-0">
+                {prereqList.length === 0 && !loading ? (
+                  <div className="p-4 text-center text-sub">No prerequisites configured.</div>
+                ) : (
+                  <ul className="list-group">
+                    {prereqList.map((p, i) => (
+                      <li key={i} className="list-group__item">
+                        <div className="flex items-center gap-3">
+                          {p.installed ? (
+                            <CheckCircle size={18} style={{ color: 'var(--color-success)' }} />
+                          ) : (
+                            <XCircle size={18} style={{ color: 'var(--color-danger)' }} />
+                          )}
+                          <div className="flex flex-col">
+                            <span className="font-medium">{p.name}</span>
+                            {p.version && <span className="text-sm text-sub">{p.version}</span>}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          {p.required && <span className="badge badge--neutral">Required</span>}
+                          {p.message && <span className="text-xs text-warning">{p.message}</span>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'notices' && (
+            <div className="card">
+              <div className="card__body p-0">
+                {noticesList.length === 0 && !loading ? (
+                  <div className="p-4 flex flex-col items-center justify-center text-sub">
+                    <CheckCircle size={48} style={{ color: 'var(--color-success)', opacity: 0.5, marginBottom: '1rem' }} />
+                    <p>No notices. Everything looks good!</p>
+                  </div>
+                ) : (
+                  <ul className="list-group">
+                    {noticesList.map((n, i) => (
+                      <li
+                        key={n.id ?? i}
+                        className={`list-group__item ${n.severity === 'error' ? 'bg-danger-subtle' : n.severity === 'warn' ? 'bg-warning-subtle' : ''
+                          }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          {n.severity === 'error' && <XCircle size={18} style={{ color: 'var(--color-danger)', marginTop: 2 }} />}
+                          {n.severity === 'warn' && <AlertCircle size={18} style={{ color: 'var(--color-warning)', marginTop: 2 }} />}
+                          <div className="flex flex-col">
+                            <span>{n.message}</span>
+                            {n.actionKey && <span className="text-xs text-sub mt-1">Action: {n.actionKey}</span>}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'env' && (
+            <div className="card">
+              <div className="card__header">
+                <h3 className="card__title">Environment Variables</h3>
+              </div>
+              <div className="card__body">
+                {envStatus ? (
+                  <div className="flex items-center gap-4">
+                    <div className={`status-indicator ${envStatus.hasEnvFile ? 'status-indicator--ready' : 'status-indicator--error'}`} />
+                    <div className="flex flex-col">
+                      <span className="font-medium">.env file</span>
+                      <span className="text-sm text-sub">
+                        {envStatus.hasEnvFile ? 'Present and loaded.' : 'Missing. Application might not work correctly.'}
+                      </span>
+                    </div>
+                    {envStatus.hasExample && !envStatus.hasEnvFile && (
+                      <button className="btn btn--secondary ml-auto">Copy .env.example</button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sub">Loading environment status...</p>
+                )}
+              </div>
+            </div>
+          )}
+
+        </div>
       </div>
     </div>
   );
