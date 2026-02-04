@@ -69,8 +69,25 @@ export function SettingsView() {
     { id: 'env', label: 'Environment', icon: <Terminal size={16} /> },
   ];
 
+  const formatBool = (value) => (value ? 'Yes' : 'No');
+  const projectSummary = appStatus?.projectsTotal != null
+    ? `${appStatus.projectsCloned ?? 0}/${appStatus.projectsTotal} cloned, ${appStatus.projectsDirty ?? 0} dirty, ${appStatus.projectsMissing ?? 0} missing`
+    : null;
+  const backendSummary = appStatus?.backendTotal != null
+    ? `${appStatus.backendRunning ?? 0}/${appStatus.backendTotal} running`
+    : null;
+  const dockerSummary = appStatus?.dockerTotal != null
+    ? `${appStatus.dockerRunning ?? 0}/${appStatus.dockerTotal} running`
+    : null;
+  const envSummary = appStatus?.envRequiredCount != null
+    ? `Missing ${appStatus.envMissingRequired ?? 0} of ${appStatus.envRequiredCount} required`
+    : null;
+  const runtimeSummary = appStatus?.os && appStatus?.arch && appStatus?.goVersion
+    ? `${appStatus.os}/${appStatus.arch} • ${appStatus.goVersion}`
+    : null;
+
   return (
-    <div className="view view--has-sidebar">
+    <div className="view view--has-sidebar view--settings">
       <div className="view__sidebar">
         <h2 className="view__sidebar-title">Settings</h2>
         <nav className="view__sidebar-nav">
@@ -95,7 +112,7 @@ export function SettingsView() {
         </div>
       </div>
 
-      <div className="view__content-area">
+      <div className="view__content-area" key={activeTab}>
         <div className="view__header">
           <div className="view__title-group">
             <h2 className="view__title">{tabs.find(t => t.id === activeTab)?.label}</h2>
@@ -134,9 +151,87 @@ export function SettingsView() {
                 </div>
                 <div className="card__body">
                   {appStatus ? (
-                    <div className="status-row">
-                      <span className="status-label">Messsage:</span>
-                      <span className="status-value">{appStatus.message ?? JSON.stringify(appStatus)}</span>
+                    <div className="flex flex-col gap-2">
+                      <div className="status-row">
+                        <span className="status-label">Message:</span>
+                        <span className="status-value">{appStatus.message ?? JSON.stringify(appStatus)}</span>
+                      </div>
+                      {appStatus.generatedAt && (
+                        <div className="status-row">
+                          <span className="status-label">Updated:</span>
+                          <span className="status-value">{appStatus.generatedAt}</span>
+                        </div>
+                      )}
+                      {appStatus.startedAt && (
+                        <div className="status-row">
+                          <span className="status-label">Started:</span>
+                          <span className="status-value">{appStatus.startedAt}</span>
+                        </div>
+                      )}
+                      {appStatus.uptime && (
+                        <div className="status-row">
+                          <span className="status-label">Uptime:</span>
+                          <span className="status-value">{appStatus.uptime}</span>
+                        </div>
+                      )}
+                      {(appStatus.gitBranch || appStatus.gitCommit) && (
+                        <div className="status-row">
+                          <span className="status-label">Git:</span>
+                          <span className="status-value">
+                            {appStatus.gitBranch ?? 'unknown'}
+                            {appStatus.gitCommit ? ` @ ${appStatus.gitCommit}` : ''}
+                            {appStatus.gitDirty != null ? ` • dirty: ${formatBool(appStatus.gitDirty)}` : ''}
+                          </span>
+                        </div>
+                      )}
+                      {(appStatus.devkitRoot || appStatus.projectsDir) && (
+                        <div className="status-row">
+                          <span className="status-label">Paths:</span>
+                          <span className="status-value">
+                            {appStatus.devkitRoot && `DevKit: ${appStatus.devkitRoot}`}
+                            {appStatus.devkitRoot && appStatus.projectsDir ? ' • ' : ''}
+                            {appStatus.projectsDir && `Projects: ${appStatus.projectsDir}`}
+                          </span>
+                        </div>
+                      )}
+                      {appStatus.wabisabyCore && (
+                        <div className="status-row">
+                          <span className="status-label">Core:</span>
+                          <span className="status-value">{appStatus.wabisabyCore}</span>
+                        </div>
+                      )}
+                      {projectSummary && (
+                        <div className="status-row">
+                          <span className="status-label">Projects:</span>
+                          <span className="status-value">{projectSummary}</span>
+                        </div>
+                      )}
+                      {(backendSummary || dockerSummary) && (
+                        <div className="status-row">
+                          <span className="status-label">Services:</span>
+                          <span className="status-value">
+                            {backendSummary && `Backend ${backendSummary}`}
+                            {backendSummary && dockerSummary ? ' • ' : ''}
+                            {dockerSummary && `Docker ${dockerSummary}`}
+                          </span>
+                        </div>
+                      )}
+                      {(appStatus.envFilePresent != null || envSummary) && (
+                        <div className="status-row">
+                          <span className="status-label">Environment:</span>
+                          <span className="status-value">
+                            {appStatus.envFilePresent != null && `Env file: ${formatBool(appStatus.envFilePresent)}`}
+                            {appStatus.envExamplePresent != null ? ` • Example: ${formatBool(appStatus.envExamplePresent)}` : ''}
+                            {envSummary ? ` • ${envSummary}` : ''}
+                          </span>
+                        </div>
+                      )}
+                      {runtimeSummary && (
+                        <div className="status-row">
+                          <span className="status-label">Runtime:</span>
+                          <span className="status-value">{runtimeSummary}</span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p className="text-sub">No status information available.</p>

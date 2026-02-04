@@ -58,7 +58,7 @@ export function StartService(arg1:string):Promise<{[key: string]: string}>;
 
 export function StartServiceLogsStream(arg1:string):Promise<void>;
 
-export function Status():Promise<{[key: string]: string}>;
+export function Status():Promise<{[key: string]: any}>;
 
 export function StopAllServices():Promise<{[key: string]: string}>;
 

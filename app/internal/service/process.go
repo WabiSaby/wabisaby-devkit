@@ -30,6 +30,8 @@ const (
 	ProcessError    ProcessState = "error"
 )
 
+const maxLastOutputLines = 50
+
 // ManagedProcess represents a running service process
 type ManagedProcess struct {
 	Name      string
@@ -40,16 +42,40 @@ type ManagedProcess struct {
 	Error     error
 
 	// Log streaming
-	logMu       sync.RWMutex
-	subscribers map[chan string]struct{}
-	done        chan struct{}
+	logMu         sync.RWMutex
+	subscribers    map[chan string]struct{}
+	done           chan struct{}
+	lastOutput     []string // last N lines of stdout/stderr for failed services
+	onActivityLine func(line string) // optional; called for each line for Activity feed
 }
+
+// BackendExitCallback is called when a backend process exits (optional, for Activity feed).
+type BackendExitCallback func(serviceName string, err error, lastOutput []string)
+
+// ActivityLineCallback is called for each stdout/stderr line from a backend (optional, for Activity feed).
+type ActivityLineCallback func(serviceName string, line string)
 
 // ProcessManager tracks running Go processes
 type ProcessManager struct {
 	mu           sync.RWMutex
 	processes    map[string]*ManagedProcess
 	wabisabyRoot string
+	onExit       BackendExitCallback
+	onActivityLine ActivityLineCallback
+}
+
+// SetOnExit sets a callback invoked when a backend service process exits (e.g. to emit to Activity).
+func (pm *ProcessManager) SetOnExit(cb BackendExitCallback) {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	pm.onExit = cb
+}
+
+// SetOnActivityLine sets a callback invoked for each stdout/stderr line from any backend (e.g. to emit to Activity).
+func (pm *ProcessManager) SetOnActivityLine(cb ActivityLineCallback) {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	pm.onActivityLine = cb
 }
 
 // NewProcessManager creates a new process manager
@@ -86,7 +112,8 @@ func (pm *ProcessManager) Start(serviceName string) error {
 	// Create command
 	cmd := exec.Command("go", "run", svcConfig.CmdPath)
 	cmd.Dir = pm.wabisabyRoot
-	cmd.Env = append(os.Environ(), envVars...)
+	// Use GOTOOLCHAIN=auto so the project's go.mod toolchain requirement is respected (e.g. 1.24.4)
+	cmd.Env = append(envForGoRun(), envVars...)
 
 	// Set up process group for clean termination
 	cmd.SysProcAttr = &syscall.SysProcAttr{
@@ -112,6 +139,11 @@ func (pm *ProcessManager) Start(serviceName string) error {
 		subscribers: make(map[chan string]struct{}),
 		done:        make(chan struct{}),
 	}
+	if pm.onActivityLine != nil {
+		cb := pm.onActivityLine
+		name := serviceName
+		proc.onActivityLine = func(line string) { cb(name, line) }
+	}
 
 	// Start process
 	if err := cmd.Start(); err != nil {
@@ -131,7 +163,6 @@ func (pm *ProcessManager) Start(serviceName string) error {
 	go func() {
 		err := cmd.Wait()
 		pm.mu.Lock()
-		defer pm.mu.Unlock()
 
 		close(proc.done)
 
@@ -146,6 +177,21 @@ func (pm *ProcessManager) Start(serviceName string) error {
 
 		// Notify subscribers that logs are done
 		proc.broadcast("[Process exited]")
+		
+		// Copy lastOutput and invoke exit callback for Activity (must not hold logMu long)
+		var exitOutput []string
+		proc.logMu.RLock()
+		if len(proc.lastOutput) > 0 {
+			exitOutput = make([]string, len(proc.lastOutput))
+			copy(exitOutput, proc.lastOutput)
+		}
+		proc.logMu.RUnlock()
+		cb := pm.onExit
+		pm.mu.Unlock()
+
+		if cb != nil {
+			cb(serviceName, err, exitOutput)
+		}
 	}()
 
 	// Wait briefly to detect immediate failures
@@ -271,6 +317,24 @@ func (pm *ProcessManager) GetError(serviceName string) string {
 	return proc.Error.Error()
 }
 
+// GetLastOutput returns the last N lines of stdout/stderr for a service (e.g. to show why it failed)
+func (pm *ProcessManager) GetLastOutput(serviceName string) []string {
+	pm.mu.RLock()
+	proc, exists := pm.processes[serviceName]
+	pm.mu.RUnlock()
+	if !exists {
+		return nil
+	}
+	proc.logMu.RLock()
+	defer proc.logMu.RUnlock()
+	if len(proc.lastOutput) == 0 {
+		return nil
+	}
+	out := make([]string, len(proc.lastOutput))
+	copy(out, proc.lastOutput)
+	return out
+}
+
 // ProbeHealth returns true if the given port/path responds with 2xx (e.g. after dashboard restart we can detect services we didn't start).
 func (pm *ProcessManager) ProbeHealth(port int, path string) bool {
 	if port <= 0 || path == "" {
@@ -354,11 +418,15 @@ func (proc *ManagedProcess) captureOutput(reader io.Reader, prefix string) {
 	for scanner.Scan() {
 		line := prefix + scanner.Text()
 		proc.broadcast(line)
+		proc.appendLastOutput(line)
 	}
 }
 
-// broadcast sends a log line to all subscribers
+// broadcast sends a log line to all subscribers and optional activity callback
 func (proc *ManagedProcess) broadcast(line string) {
+	if proc.onActivityLine != nil {
+		proc.onActivityLine(line)
+	}
 	proc.logMu.RLock()
 	defer proc.logMu.RUnlock()
 
@@ -368,6 +436,16 @@ func (proc *ManagedProcess) broadcast(line string) {
 		default:
 			// Channel full, skip
 		}
+	}
+}
+
+// appendLastOutput keeps the last maxLastOutputLines for debugging failed starts
+func (proc *ManagedProcess) appendLastOutput(line string) {
+	proc.logMu.Lock()
+	defer proc.logMu.Unlock()
+	proc.lastOutput = append(proc.lastOutput, line)
+	if len(proc.lastOutput) > maxLastOutputLines {
+		proc.lastOutput = proc.lastOutput[len(proc.lastOutput)-maxLastOutputLines:]
 	}
 }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, RotateCw, Terminal, ExternalLink, Box, Tag, GitGraph } from 'lucide-react';
+import { Hammer, FlaskConical, Terminal, ExternalLink, Box, Tag, GitGraph } from 'lucide-react';
 
 // GitHub Linguist-style colors per language (glassy, discrete tint)
 const LANGUAGE_COLORS = {
@@ -47,8 +47,8 @@ export function ProjectCard({ project, onAction }) {
             </div>
             <div className="card__footer">
                 <div className="card__actions">
-                    <ActionButton icon={<RotateCw size={14} />} label="Build" onClick={() => onAction('build', project)} />
-                    <ActionButton icon={<Play size={14} />} label="Test" onClick={() => onAction('test', project)} />
+                    <ActionButton icon={<Hammer size={14} />} label="Build" onClick={() => onAction('build', project)} />
+                    <ActionButton icon={<FlaskConical size={14} />} label="Test" onClick={() => onAction('test', project)} />
                     <ActionButton icon={<Terminal size={14} />} label="Logs" onClick={() => onAction('logs', project)} />
                 </div>
                 <div className="card__actions">

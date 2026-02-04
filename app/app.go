@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"sync"
 	"time"
@@ -30,6 +31,7 @@ type App struct {
 	migrationSvc     *service.MigrationService
 	envSvc           *service.EnvService
 	protoSvc         *service.ProtoService
+	startedAt        time.Time
 
 	// Stream cancellation
 	streamMu      sync.Mutex
@@ -58,6 +60,27 @@ func NewApp(cfg *config.Config) *App {
 // Startup is called when the app starts
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
+	if a.startedAt.IsZero() {
+		a.startedAt = time.Now()
+	}
+	a.processManager.SetOnExit(func(serviceName string, err error, lastOutput []string) {
+		errStr := ""
+		if err != nil {
+			errStr = err.Error()
+		}
+		payload := map[string]interface{}{
+			"name":       serviceName,
+			"error":      errStr,
+			"lastOutput": lastOutput,
+		}
+		runtime.EventsEmit(a.ctx, "devkit:backend:exited", payload)
+	})
+	a.processManager.SetOnActivityLine(func(serviceName string, line string) {
+		runtime.EventsEmit(a.ctx, "devkit:backend:logs", map[string]interface{}{
+			"name": serviceName,
+			"line": line,
+		})
+	})
 }
 
 // Shutdown is called when the app is closing
@@ -79,8 +102,96 @@ func (a *App) Shutdown(ctx context.Context) {
 // ====================
 
 // Status returns the dashboard status
-func (a *App) Status() map[string]string {
-	return map[string]string{"message": "DevKit dashboard is running"}
+func (a *App) Status() map[string]interface{} {
+	now := time.Now()
+	info := map[string]interface{}{
+		"message":      "DevKit dashboard is running",
+		"generatedAt":  now.Format(time.RFC3339),
+		"devkitRoot":   a.devkitRoot,
+		"projectsDir":  a.projectsDir,
+		"wabisabyCore": a.wabisabyCorePath,
+		"goVersion":    goruntime.Version(),
+		"os":           goruntime.GOOS,
+		"arch":         goruntime.GOARCH,
+	}
+
+	if !a.startedAt.IsZero() {
+		info["startedAt"] = a.startedAt.Format(time.RFC3339)
+		info["uptime"] = time.Since(a.startedAt).Round(time.Second).String()
+	}
+
+	if _, err := os.Stat(filepath.Join(a.devkitRoot, ".git")); err == nil {
+		if branch, err := git.GetBranch(a.devkitRoot); err == nil {
+			info["gitBranch"] = branch
+		}
+		if commit, err := git.GetCommit(a.devkitRoot); err == nil {
+			info["gitCommit"] = commit
+		}
+		info["gitDirty"] = git.IsDirty(a.devkitRoot)
+	}
+
+	if projects, err := service.GetProjects(a.projectsDir); err == nil {
+		total := len(projects)
+		cloned := 0
+		dirty := 0
+		missing := 0
+		for _, p := range projects {
+			switch p.Status {
+			case "not-cloned":
+				missing++
+			case "dirty":
+				cloned++
+				dirty++
+			case "clean":
+				cloned++
+			default:
+				cloned++
+			}
+		}
+		info["projectsTotal"] = total
+		info["projectsCloned"] = cloned
+		info["projectsDirty"] = dirty
+		info["projectsMissing"] = missing
+	}
+
+	backendServices := a.ListBackendServices()
+	if len(backendServices) > 0 {
+		running := 0
+		for _, svc := range backendServices {
+			if svc.Status == "running" {
+				running++
+			}
+		}
+		info["backendTotal"] = len(backendServices)
+		info["backendRunning"] = running
+	}
+
+	dockerServices := a.ListServices()
+	if len(dockerServices) > 0 {
+		running := 0
+		for _, svc := range dockerServices {
+			if svc.Status == "running" {
+				running++
+			}
+		}
+		info["dockerTotal"] = len(dockerServices)
+		info["dockerRunning"] = running
+	}
+
+	if envStatus, err := a.envSvc.GetStatus(); err == nil && envStatus != nil {
+		missingRequired := 0
+		for _, v := range envStatus.RequiredVars {
+			if !v.IsSet {
+				missingRequired++
+			}
+		}
+		info["envFilePresent"] = envStatus.HasEnvFile
+		info["envExamplePresent"] = envStatus.HasExample
+		info["envRequiredCount"] = len(envStatus.RequiredVars)
+		info["envMissingRequired"] = missingRequired
+	}
+
+	return info
 }
 
 // ====================
@@ -517,9 +628,10 @@ func (a *App) StopBulkProjectStream(action string) {
 
 // Service UI URLs
 var serviceUIURLs = map[string]string{
-	"pgAdmin": "http://localhost:5050",
-	"MinIO":   "http://localhost:9001",
-	"Vault":   "http://localhost:8200",
+	"pgAdmin":        "http://localhost:5050",
+	"RedisCommander": "http://localhost:8081",
+	"MinIO":          "http://localhost:9001",
+	"Vault":          "http://localhost:8200",
 }
 
 // ListServices returns all Docker services with their status
@@ -527,6 +639,7 @@ func (a *App) ListServices() []model.Service {
 	services := []model.Service{
 		{Name: "PostgreSQL", Port: 5432},
 		{Name: "Redis", Port: 6379},
+		{Name: "RedisCommander", Port: 8081},
 		{Name: "MinIO", Port: 9000},
 		{Name: "Vault", Port: 8200},
 		{Name: "pgAdmin", Port: 5050},
@@ -547,6 +660,10 @@ func (a *App) StartService(name string) (map[string]string, error) {
 	if err := service.StartService(name, a.devkitRoot); err != nil {
 		return nil, fmt.Errorf("failed to start %s: %w", name, err)
 	}
+	runtime.EventsEmit(a.ctx, "devkit:service:logs", map[string]interface{}{
+		"name": name,
+		"line": "Started",
+	})
 	return map[string]string{"message": fmt.Sprintf("start %s completed", name)}, nil
 }
 
@@ -555,6 +672,10 @@ func (a *App) StopService(name string) (map[string]string, error) {
 	if err := service.StopService(name, a.devkitRoot); err != nil {
 		return nil, fmt.Errorf("failed to stop %s: %w", name, err)
 	}
+	runtime.EventsEmit(a.ctx, "devkit:service:logs", map[string]interface{}{
+		"name": name,
+		"line": "Stopped",
+	})
 	return map[string]string{"message": fmt.Sprintf("stop %s completed", name)}, nil
 }
 
@@ -576,11 +697,12 @@ func (a *App) StopAllServices() (map[string]string, error) {
 
 // Map service names to docker-compose service names
 var serviceNameMap = map[string]string{
-	"PostgreSQL": "postgres",
-	"Redis":      "redis",
-	"MinIO":      "minio",
-	"Vault":      "vault",
-	"pgAdmin":    "pgadmin",
+	"PostgreSQL":     "postgres",
+	"Redis":          "redis",
+	"RedisCommander": "redis-commander",
+	"MinIO":          "minio",
+	"Vault":          "vault",
+	"pgAdmin":        "pgadmin",
 }
 
 // StartServiceLogsStream starts streaming Docker service logs
@@ -712,12 +834,13 @@ func (a *App) ListBackendServices() []model.BackendService {
 
 	for _, svc := range services {
 		bs := model.BackendService{
-			Name:   svc.Name,
-			Group:  svc.Group,
-			Port:   svc.Port,
-			Status: a.processManager.GetStatus(svc.Name),
-			PID:    a.processManager.GetPID(svc.Name),
-			Error:  a.processManager.GetError(svc.Name),
+			Name:       svc.Name,
+			Group:      svc.Group,
+			Port:       svc.Port,
+			Status:     a.processManager.GetStatus(svc.Name),
+			PID:        a.processManager.GetPID(svc.Name),
+			Error:      a.processManager.GetError(svc.Name),
+			LastOutput: a.processManager.GetLastOutput(svc.Name),
 		}
 
 		// If not in process manager, detect running via health probe
@@ -794,6 +917,11 @@ func (a *App) StartBackendService(name string) (map[string]string, error) {
 	if err := a.processManager.Start(name); err != nil {
 		return nil, fmt.Errorf("failed to start %s: %w", name, err)
 	}
+	runtime.EventsEmit(a.ctx, "devkit:backend:started", map[string]interface{}{"name": name})
+	runtime.EventsEmit(a.ctx, "devkit:backend:logs", map[string]interface{}{
+		"name": name,
+		"line": "Started",
+	})
 	return map[string]string{"message": fmt.Sprintf("Started %s", name)}, nil
 }
 
@@ -810,6 +938,10 @@ func (a *App) StopBackendService(name string) (map[string]string, error) {
 	if svc != nil && svc.Port > 0 {
 		_ = a.processManager.KillProcessOnPort(svc.Port)
 	}
+	runtime.EventsEmit(a.ctx, "devkit:backend:logs", map[string]interface{}{
+		"name": name,
+		"line": "Stopped",
+	})
 	return map[string]string{"message": fmt.Sprintf("Stopped %s", name)}, nil
 }
 
@@ -821,6 +953,13 @@ func (a *App) StartBackendGroup(group string) (map[string]string, error) {
 	if err := a.processManager.StartGroup(group); err != nil {
 		return nil, fmt.Errorf("failed to start group %s: %w", group, err)
 	}
+	for _, svc := range config.GetServicesByGroup(group) {
+		runtime.EventsEmit(a.ctx, "devkit:backend:started", map[string]interface{}{"name": svc.Name})
+		runtime.EventsEmit(a.ctx, "devkit:backend:logs", map[string]interface{}{
+			"name": svc.Name,
+			"line": "Started",
+		})
+	}
 	return map[string]string{"message": fmt.Sprintf("Started all services in %s group", group)}, nil
 }
 
@@ -831,6 +970,12 @@ func (a *App) StopBackendGroup(group string) (map[string]string, error) {
 	}
 	if err := a.processManager.StopGroup(group); err != nil {
 		return nil, fmt.Errorf("failed to stop group %s: %w", group, err)
+	}
+	for _, svc := range config.GetServicesByGroup(group) {
+		runtime.EventsEmit(a.ctx, "devkit:backend:logs", map[string]interface{}{
+			"name": svc.Name,
+			"line": "Stopped",
+		})
 	}
 	return map[string]string{"message": fmt.Sprintf("Stopped all services in %s group", group)}, nil
 }

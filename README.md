@@ -97,6 +97,21 @@ make -C app build
 
 The binary is produced under `app/build/bin/` (platform-specific). For live-reload development, use `make start` (runs `make -C app dev`).
 
+### Dev mode: WebSocket / "hostname could not be found"
+
+When running `make start` (Wails dev mode), the frontend connects to the Go backend over a WebSocket. If you see:
+
+```text
+WebSocket connection to 'ws://wails.localhost:34115/...' failed: A server with the specified hostname could not be found.
+```
+
+then **Activity and backend events will not work** until the hostname resolves. Add this line to your hosts file:
+
+- **macOS/Linux:** `sudo sh -c 'echo "127.0.0.1 wails.localhost" >> /etc/hosts'`
+- **Windows:** Add `127.0.0.1 wails.localhost` to `C:\Windows\System32\drivers\etc\hosts` (as Administrator).
+
+Restart the DevKit app after changing hosts.
+
 ## Paths and submodules
 
 - Submodules live under **`projects/<name>`** (see `.gitmodules`). Scripts assume this layout.

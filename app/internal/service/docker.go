@@ -13,6 +13,7 @@ func CheckServiceStatus(name string, port int, devkitRoot string) string {
 	containerMap := map[string]string{
 		"PostgreSQL": "wabisaby-postgres",
 		"Redis":      "wabisaby-redis",
+		"RedisCommander": "wabisaby-redis-commander",
 		"MinIO":      "wabisaby-minio",
 		"Vault":      "wabisaby-vault",
 		"pgAdmin":    "wabisaby-pgadmin",
@@ -41,6 +42,7 @@ func StartService(name string, devkitRoot string) error {
 	serviceMap := map[string]string{
 		"PostgreSQL": "postgres",
 		"Redis":      "redis",
+		"RedisCommander": "redis-commander",
 		"MinIO":      "minio",
 		"Vault":      "vault",
 		"pgAdmin":    "pgadmin",
@@ -53,7 +55,19 @@ func StartService(name string, devkitRoot string) error {
 
 	composeFile := filepath.Join(devkitRoot, "docker/docker-compose.yml")
 	cmd := exec.Command("docker-compose", "-f", composeFile, "up", "-d", composeServiceName)
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	// Ensure companion UIs are started alongside base services.
+	if name == "PostgreSQL" {
+		_ = exec.Command("docker-compose", "-f", composeFile, "up", "-d", "pgadmin").Run()
+	}
+	if name == "Redis" {
+		_ = exec.Command("docker-compose", "-f", composeFile, "up", "-d", "redis-commander").Run()
+	}
+
+	return nil
 }
 
 // StopService stops a Docker service
@@ -61,6 +75,7 @@ func StopService(name string, devkitRoot string) error {
 	serviceMap := map[string]string{
 		"PostgreSQL": "postgres",
 		"Redis":      "redis",
+		"RedisCommander": "redis-commander",
 		"MinIO":      "minio",
 		"Vault":      "vault",
 		"pgAdmin":    "pgadmin",
@@ -73,7 +88,19 @@ func StopService(name string, devkitRoot string) error {
 
 	composeFile := filepath.Join(devkitRoot, "docker/docker-compose.yml")
 	cmd := exec.Command("docker-compose", "-f", composeFile, "stop", composeServiceName)
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	// Stop companion UIs when base services are stopped.
+	if name == "PostgreSQL" {
+		_ = exec.Command("docker-compose", "-f", composeFile, "stop", "pgadmin").Run()
+	}
+	if name == "Redis" {
+		_ = exec.Command("docker-compose", "-f", composeFile, "stop", "redis-commander").Run()
+	}
+
+	return nil
 }
 
 // StartAllServices starts all Docker services

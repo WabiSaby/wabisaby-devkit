@@ -4,7 +4,7 @@ package config
 type BackendServiceConfig struct {
 	Name       string
 	CmdPath    string // e.g., "./cmd/api"
-	Group      string // "core", "coordinator", "node"
+	Group      string // "backend", "mesh", "plugins"
 	Port       int
 	HealthPath string // e.g., "/health"
 	DocsPath   string // e.g., "/docs"
@@ -13,11 +13,11 @@ type BackendServiceConfig struct {
 // GetBackendServices returns all configured WabiSaby-Go services
 func GetBackendServices() []BackendServiceConfig {
 	return []BackendServiceConfig{
-		// Core services (core.yaml)
+		// Backend services (core.yaml)
 		{
 			Name:       "api",
 			CmdPath:    "./cmd/api",
-			Group:      "core",
+			Group:      "backend",
 			Port:       8080,
 			HealthPath: "/health",
 			DocsPath:   "/docs",
@@ -25,31 +25,15 @@ func GetBackendServices() []BackendServiceConfig {
 		{
 			Name:    "websocket",
 			CmdPath: "./cmd/websocket",
-			Group:   "core",
+			Group:   "backend",
 			Port:    8081,
 		},
-		{
-			Name:    "capabilities-server",
-			CmdPath: "./cmd/capabilities-server",
-			Group:   "core",
-			Port:    50051,
-		},
-		{
-			Name:    "stateful-plugin-worker",
-			CmdPath: "./cmd/stateful-plugin-worker",
-			Group:   "core",
-		},
-		{
-			Name:    "stateless-plugin-worker",
-			CmdPath: "./cmd/stateless-plugin-worker",
-			Group:   "core",
-		},
 
-		// Coordinator (coordinator.yaml)
+		// WabiSaby Mesh (coordinator.yaml)
 		{
 			Name:    "network-coordinator",
 			CmdPath: "./cmd/network-coordinator",
-			Group:   "coordinator",
+			Group:   "mesh",
 			Port:    50051,
 		},
 
@@ -57,7 +41,25 @@ func GetBackendServices() []BackendServiceConfig {
 		{
 			Name:    "node",
 			CmdPath: "./cmd/node",
-			Group:   "node",
+			Group:   "mesh",
+		},
+
+		// Plugin infrastructure
+		{
+			Name:    "capabilities-server",
+			CmdPath: "./cmd/capabilities-server",
+			Group:   "plugins",
+			Port:    50051,
+		},
+		{
+			Name:    "stateful-plugin-worker",
+			CmdPath: "./cmd/stateful-plugin-worker",
+			Group:   "plugins",
+		},
+		{
+			Name:    "stateless-plugin-worker",
+			CmdPath: "./cmd/stateless-plugin-worker",
+			Group:   "plugins",
 		},
 	}
 }

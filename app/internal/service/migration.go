@@ -100,7 +100,7 @@ func (s *MigrationService) getCurrentVersion() (uint, bool, error) {
 	// Run migrate version command
 	cmd := exec.Command("go", "run", "./tools/migrate", "-version")
 	cmd.Dir = s.wabisabyRoot
-	cmd.Env = append(os.Environ(), envVars...)
+	cmd.Env = append(envForGoRun(), envVars...)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -156,7 +156,7 @@ func (s *MigrationService) runMigration(flag string) (string, error) {
 
 	cmd := exec.Command("go", "run", "./tools/migrate", flag)
 	cmd.Dir = s.wabisabyRoot
-	cmd.Env = append(os.Environ(), envVars...)
+	cmd.Env = append(envForGoRun(), envVars...)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -185,7 +185,7 @@ func (s *MigrationService) runMigrationStream(ctx context.Context, flag string) 
 
 	cmd := exec.CommandContext(ctx, "go", "run", "./tools/migrate", flag)
 	cmd.Dir = s.wabisabyRoot
-	cmd.Env = append(os.Environ(), envVars...)
+	cmd.Env = append(envForGoRun(), envVars...)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

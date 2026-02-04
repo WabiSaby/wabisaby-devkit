@@ -2,14 +2,15 @@ package model
 
 // BackendService represents a WabiSaby-Go service
 type BackendService struct {
-	Name      string `json:"name"`
-	Group     string `json:"group"`           // "core", "coordinator", "node"
-	Port      int    `json:"port,omitempty"`
-	Status    string `json:"status"`          // "running", "stopped", "starting", "stopping", "error"
-	PID       int    `json:"pid,omitempty"`
-	HealthURL string `json:"healthUrl,omitempty"`
-	DocsURL   string `json:"docsUrl,omitempty"`
-	Error     string `json:"error,omitempty"`
+	Name        string   `json:"name"`
+	Group       string   `json:"group"`           // "backend", "mesh", "plugins"
+	Port        int      `json:"port,omitempty"`
+	Status      string   `json:"status"`          // "running", "stopped", "starting", "stopping", "error"
+	PID         int      `json:"pid,omitempty"`
+	HealthURL   string   `json:"healthUrl,omitempty"`
+	DocsURL     string   `json:"docsUrl,omitempty"`
+	Error       string   `json:"error,omitempty"`
+	LastOutput  []string `json:"lastOutput,omitempty"` // last stdout/stderr lines when in error state
 }
 
 // MigrationStatus represents database migration state

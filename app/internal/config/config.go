@@ -41,8 +41,10 @@ func defaultDevKitRoot() (string, error) {
 // Load loads configuration from environment variables with defaults
 func Load() (*Config, error) {
 	var devkitRoot string
+	var devkitRootFromEnv bool
 	if v := os.Getenv("WABISABY_DEVKIT_ROOT"); v != "" {
 		devkitRoot = v
+		devkitRootFromEnv = true
 	} else {
 		var err error
 		devkitRoot, err = defaultDevKitRoot()
@@ -52,6 +54,12 @@ func Load() (*Config, error) {
 	}
 
 	projectsDir := os.Getenv("WABISABY_PROJECTS_DIR")
+	if !devkitRootFromEnv {
+		if root, ok := findDevKitRootFromCwd(); ok {
+			devkitRoot = root
+		}
+	}
+
 	if projectsDir == "" {
 		projectsDir = filepath.Join(devkitRoot, "projects")
 	}
@@ -77,4 +85,26 @@ func Load() (*Config, error) {
 		ProjectsDir:      projectsDir,
 		WabisabyCorePath: wabisabyCorePath,
 	}, nil
+}
+
+func findDevKitRootFromCwd() (string, bool) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", false
+	}
+
+	dir := cwd
+	for {
+		composePath := filepath.Join(dir, "docker", "docker-compose.yml")
+		if _, err := os.Stat(composePath); err == nil {
+			return dir, true
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+
+	return "", false
 }

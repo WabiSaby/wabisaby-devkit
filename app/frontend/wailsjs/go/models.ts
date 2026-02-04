@@ -9,6 +9,7 @@ export namespace model {
 	    healthUrl?: string;
 	    docsUrl?: string;
 	    error?: string;
+	    lastOutput?: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new BackendService(source);
@@ -24,6 +25,7 @@ export namespace model {
 	        this.healthUrl = source["healthUrl"];
 	        this.docsUrl = source["docsUrl"];
 	        this.error = source["error"];
+	        this.lastOutput = source["lastOutput"];
 	    }
 	}
 	export class Dependency {

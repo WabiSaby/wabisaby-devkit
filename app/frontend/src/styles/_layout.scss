@@ -28,9 +28,17 @@
 
 .app__body {
   display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   position: relative; // Context for absolute children if needed
+}
+
+.app__body-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .app__sidebar {
@@ -164,29 +172,31 @@
 }
 
 // Hide labels in collapsed mode
-.app--sidebar-collapsed .nav-item {
+.app--sidebar-collapsed .app__sidebar .nav-item {
   justify-content: center;
   padding: 0;
 }
 
-.app--sidebar-collapsed .nav-item span {
+.app--sidebar-collapsed .app__sidebar .nav-item span {
   display: none;
 }
 
-.app--sidebar-collapsed .nav-item::before {
+.app--sidebar-collapsed .app__sidebar .nav-item::before {
   display: none; // Hide active indicator line in mini mode
 }
 
-.app--sidebar-collapsed .nav-item--active {
+.app--sidebar-collapsed .app__sidebar .nav-item--active {
   background-color: hsla(217, 91%, 60%, 0.2); // Stronger bg for active icon
   color: var(--color-primary);
 }
 
-// Status Bar
+// Status Bar – full width across sidebar + main
 .app__statusbar {
   flex-shrink: 0;
+  width: 100%;
   height: 28px;
-  background-color: transparent; // Let the body gradient show through, blending with content area
+  background-color: var(--bg-sidebar);
+  backdrop-filter: var(--glass-blur);
   border-top: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;

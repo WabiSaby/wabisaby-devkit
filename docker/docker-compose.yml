@@ -52,6 +52,19 @@ services:
     networks:
       - wabisaby-dev
 
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: wabisaby-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - wabisaby-dev
+
   minio:
     image: quay.io/minio/minio:latest
     container_name: wabisaby-minio

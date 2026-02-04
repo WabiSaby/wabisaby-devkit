@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { backend, events } from '../lib/wails';
+import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 import { StreamModal } from '../components/StreamModal';
 import { Skeleton } from '../components/Skeleton';
 import { StartStopAllButtons } from '../components/StartStopAllButtons';
@@ -13,7 +14,8 @@ import {
   ExternalLink,
   Shield,
   Activity,
-  Server
+  Server,
+  Loader2
 } from 'lucide-react';
 
 export function ServicesView() {
@@ -22,6 +24,8 @@ export function ServicesView() {
   const [activeLogs, setActiveLogs] = useState(null);
   const [logLines, setLogLines] = useState([]);
   const [logActive, setLogActive] = useState(false);
+  const [pendingActions, setPendingActions] = useState({});
+  const [bulkAction, setBulkAction] = useState(null);
   const { success: toastSuccess, error: toastError, info: toastInfo } = useToast();
 
   const fetchBackends = useCallback(async () => {
@@ -74,7 +78,9 @@ export function ServicesView() {
 
   const handleAction = async (action, name) => {
     if (!window.go) return;
+    if (pendingActions[name]) return;
 
+    setPendingActions((prev) => ({ ...prev, [name]: action }));
     try {
       if (action === 'start') {
         toastInfo(`Starting ${name}...`);
@@ -85,9 +91,15 @@ export function ServicesView() {
         await backend.stop(name);
         toastSuccess(`${name} stopped`);
       }
-      fetchBackends();
+      await fetchBackends();
     } catch (err) {
       toastError(`Failed to ${action} ${name}: ${err.message || 'Unknown error'}`);
+    } finally {
+      setPendingActions((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
     }
   };
 
@@ -120,29 +132,37 @@ export function ServicesView() {
 
   const handleStartAll = async () => {
     if (!window.go || groupNames.length === 0) return;
+    if (bulkAction) return;
+    setBulkAction('start');
     try {
       toastInfo('Starting all services...');
       for (const group of groupNames) {
         await backend.startGroup(group);
       }
       toastSuccess('All services started');
-      fetchBackends();
+      await fetchBackends();
     } catch (err) {
       toastError(`Failed to start all: ${err.message || 'Unknown error'}`);
+    } finally {
+      setBulkAction(null);
     }
   };
 
   const handleStopAll = async () => {
     if (!window.go || groupNames.length === 0) return;
+    if (bulkAction) return;
+    setBulkAction('stop');
     try {
       toastInfo('Stopping all services...');
       for (const group of groupNames) {
         await backend.stopGroup(group);
       }
       toastSuccess('All services stopped');
-      fetchBackends();
+      await fetchBackends();
     } catch (err) {
       toastError(`Failed to stop all: ${err.message || 'Unknown error'}`);
+    } finally {
+      setBulkAction(null);
     }
   };
 
@@ -181,7 +201,13 @@ export function ServicesView() {
             Refresh
           </button>
           {window.go && groupNames.length > 0 && (
-            <StartStopAllButtons onStart={handleStartAll} onStop={handleStopAll} />
+            <StartStopAllButtons
+              onStart={handleStartAll}
+              onStop={handleStopAll}
+              isStarting={bulkAction === 'start'}
+              isStopping={bulkAction === 'stop'}
+              disabled={loading}
+            />
           )}
         </div>
       </div>
@@ -215,15 +241,29 @@ export function ServicesView() {
               </div>
 
               <div className="view__grid view__grid--sm">
-                {services.map((svc) => (
-                  <ServiceCard
-                    key={svc.name}
-                    service={svc}
-                    onStart={() => handleAction('start', svc.name)}
-                    onStop={() => handleAction('stop', svc.name)}
-                    onLogs={() => openLogs(svc.name)}
-                  />
-                ))}
+                {services.map((svc) => {
+                  const bulkPending =
+                    bulkAction === 'start'
+                      ? svc.status !== 'running'
+                        ? 'start'
+                        : null
+                      : bulkAction === 'stop'
+                        ? svc.status === 'running'
+                          ? 'stop'
+                          : null
+                        : null;
+                  const pendingAction = pendingActions[svc.name] || bulkPending;
+                  return (
+                    <ServiceCard
+                      key={svc.name}
+                      service={svc}
+                      pendingAction={pendingAction}
+                      onStart={() => handleAction('start', svc.name)}
+                      onStop={() => handleAction('stop', svc.name)}
+                      onLogs={() => openLogs(svc.name)}
+                    />
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -242,20 +282,42 @@ export function ServicesView() {
   );
 }
 
-function ServiceCard({ service, onStart, onStop, onLogs }) {
+function ServiceCard({ service, onStart, onStop, onLogs, pendingAction }) {
   const isRunning = service.status === 'running';
   const isError = service.status === 'error';
-  const badgeVariant = isRunning ? 'badge--success' : isError ? 'badge--danger' : 'badge--muted';
+  const isStarting = pendingAction === 'start';
+  const isStopping = pendingAction === 'stop';
+  const isTransitioning = isStarting || isStopping;
+  const badgeVariant = isTransitioning
+    ? 'badge--info badge--pending'
+    : isRunning
+      ? 'badge--success'
+      : isError
+        ? 'badge--danger'
+        : 'badge--muted';
+
+  // For API service, open button always goes to API docs (use docsUrl or construct /docs from port)
+  const isApiService = service.name === 'api';
+  const openUrl = isApiService
+    ? (service.docsUrl || (service.port ? `http://localhost:${service.port}/docs` : null))
+    : (service.docsUrl || service.healthUrl);
+  const openTitle = isApiService ? 'Open API docs' : (service.docsUrl ? 'Open API docs' : 'Open health');
+
+  const statusLabel = isStarting ? 'Starting' : isStopping ? 'Stopping' : (service.status || 'Stopped');
 
   return (
-    <div className={`card service-card ${isRunning ? 'service-card--running' : ''}`}>
+    <div
+      className={`card service-card ${isRunning ? 'service-card--running' : ''} ${isTransitioning ? 'service-card--transitioning' : ''}`}
+      data-state={isStarting ? 'starting' : isStopping ? 'stopping' : service.status || 'stopped'}
+      aria-busy={isTransitioning}
+    >
       <div className="card__header">
         <div className="card__icon-wrap">
           {service.group === 'core' ? <Shield size={20} /> : <Activity size={20} />}
         </div>
         <div className={`badge ${badgeVariant}`}>
           <span className="badge__dot" />
-          <span>{service.status || 'Stopped'}</span>
+          <span>{statusLabel}</span>
         </div>
       </div>
 
@@ -269,22 +331,39 @@ function ServiceCard({ service, onStart, onStop, onLogs }) {
       <div className="card__footer">
         <div className="card__actions">
           {isRunning ? (
-            <button type="button" onClick={onStop} className="btn btn--danger btn--sm">
-              <Square size={12} /> Stop
+            <button
+              type="button"
+              onClick={onStop}
+              className={`btn btn--danger btn--sm btn--state ${isStopping ? 'btn--pending' : ''}`}
+              disabled={isTransitioning}
+              aria-busy={isStopping}
+            >
+              {isStopping ? <Loader2 size={12} className="icon-spin" /> : <Square size={12} />} {isStopping ? 'Stopping' : 'Stop'}
             </button>
           ) : (
-            <button type="button" onClick={onStart} className="btn btn--success btn--sm">
-              <Play size={12} /> Start
+            <button
+              type="button"
+              onClick={onStart}
+              className={`btn btn--success btn--sm btn--state ${isStarting ? 'btn--pending' : ''}`}
+              disabled={isTransitioning}
+              aria-busy={isStarting}
+            >
+              {isStarting ? <Loader2 size={12} className="icon-spin" /> : <Play size={12} />} {isStarting ? 'Starting' : 'Start'}
             </button>
           )}
-          <button type="button" onClick={onLogs} className="btn btn--ghost btn--sm">
+          <button type="button" onClick={onLogs} className="btn btn--ghost btn--sm" disabled={isTransitioning}>
             <List size={12} /> Logs
           </button>
         </div>
-        {service.healthUrl && (
-          <a href={service.healthUrl} target="_blank" rel="noopener noreferrer" className="btn btn--ghost btn--sm">
+        {openUrl && (
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            title={openTitle}
+            onClick={() => (window.runtime ? BrowserOpenURL(openUrl) : window.open(openUrl))}
+          >
             <ExternalLink size={12} />
-          </a>
+          </button>
         )}
       </div>
     </div>
