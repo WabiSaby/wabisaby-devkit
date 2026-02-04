@@ -19,7 +19,8 @@
   --wails-draggable: drag; // Wails v2: window drag handle (macOS)
 }
 
-.app--no-titlebar .app__titlebar {
+.app--no-titlebar .app__titlebar,
+.app--fullscreen .app__titlebar {
   height: 0;
   padding: 0;
   border: 0;
@@ -62,7 +63,7 @@
 }
 
 .app__sidebar-header {
-  height: var(--space-14);
+  height: var(--header-row-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -77,17 +78,28 @@
   padding: 0;
 }
 
-// Hide brand text when collapsed
+// Brand (logo + title) – clickable, goes to home
 .app__sidebar-brand {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  padding: var(--space-2) var(--space-1);
+  margin: 0 calc(var(--space-1) * -1) 0 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font: inherit;
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, background 0.2s var(--ease-smooth);
+  cursor: pointer;
+
+  &:hover {
+    background: hsla(224, 60%, 20%, 0.3);
+  }
 }
 
 .app--sidebar-collapsed .app__sidebar-title {

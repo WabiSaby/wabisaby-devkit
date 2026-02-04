@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout, Boxes, Activity, Settings, PanelLeftClose, PanelLeft, Server, Github, Network, Plug } from 'lucide-react';
+import { WindowIsFullscreen } from '../wailsjs/runtime/runtime';
 import { ProjectsView } from './views/ProjectsView';
 import { InfrastructureView } from './views/InfrastructureView';
 import { BackendServicesView } from './views/BackendServicesView';
@@ -7,13 +8,32 @@ import { MeshServicesView } from './views/MeshServicesView';
 import { PluginInfrastructureView } from './views/PluginInfrastructureView';
 import { ActivityView } from './views/ActivityView';
 import { SettingsView } from './views/SettingsView';
+import { LandingView } from './views/LandingView';
+import { TopBar } from './components/TopBar';
 
 function App() {
-  const [activeView, setActiveView] = useState('projects');
+  const [activeView, setActiveView] = useState('home');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [breadcrumbSub, setBreadcrumbSub] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window.runtime?.WindowIsFullscreen !== 'function') return;
+    const check = () => WindowIsFullscreen().then(setIsFullscreen).catch(() => setIsFullscreen(false));
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const handleNavigate = (view) => {
+    setActiveView(view);
+    setBreadcrumbSub(null);
+  };
 
   const renderView = () => {
     switch (activeView) {
+      case 'home':
+        return <LandingView onNavigate={handleNavigate} />;
       case 'projects':
         return <ProjectsView />;
       case 'infrastructure':
@@ -25,23 +45,28 @@ function App() {
       case 'plugins':
         return <PluginInfrastructureView />;
       case 'settings':
-        return <SettingsView />;
+        return <SettingsView onBreadcrumbChange={setBreadcrumbSub} />;
       default:
-        return <ProjectsView />;
+        return <LandingView onNavigate={handleNavigate} />;
     }
   };
 
   return (
-    <div className={`app ${sidebarOpen ? '' : 'app--sidebar-collapsed'}`}>
+    <div className={`app ${sidebarOpen ? '' : 'app--sidebar-collapsed'} ${isFullscreen ? 'app--fullscreen' : ''}`}>
       <header className="app__titlebar" />
       <div className="app__body">
         <div className="app__body-row">
           <aside className="app__sidebar">
             <div className="app__sidebar-header">
-              <div className="app__sidebar-brand">
+              <button
+                type="button"
+                className="app__sidebar-brand"
+                onClick={() => handleNavigate('home')}
+                title="Go to Home"
+              >
                 <Layout size={24} style={{ color: 'var(--color-primary)' }} />
                 <span className="app__sidebar-title">DevKit</span>
-              </div>
+              </button>
               <button
                 type="button"
                 className="btn btn--ghost btn--icon"
@@ -100,6 +125,11 @@ function App() {
           </aside>
 
           <main className="app__main">
+            <TopBar
+              currentView={activeView}
+              breadcrumbSub={breadcrumbSub}
+              onNavigate={handleNavigate}
+            />
             <div className="app__content">
               {activeView !== 'activity' && renderView()}
               <div style={{ display: activeView === 'activity' ? 'block' : 'none', height: '100%' }}>

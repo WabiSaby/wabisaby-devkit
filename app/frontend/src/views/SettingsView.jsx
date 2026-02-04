@@ -1,15 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { status, prerequisites, notices, submodule, env } from '../lib/wails';
+import { status, prerequisites, submodule, env } from '../lib/wails';
 import {
-  RefreshCw, CheckCircle, XCircle, AlertCircle, GitMerge, X,
-  Settings as SettingsIcon, Layout, Terminal, AlertTriangle
+  RefreshCw, CheckCircle, XCircle, GitMerge, X,
+  Settings as SettingsIcon, Layout, Terminal
 } from 'lucide-react';
 
-export function SettingsView() {
+export function SettingsView({ onBreadcrumbChange }) {
   const [activeTab, setActiveTab] = useState('status');
   const [appStatus, setAppStatus] = useState(null);
   const [prereqList, setPrereqList] = useState([]);
-  const [noticesList, setNoticesList] = useState([]);
   const [submoduleNeedsSync, setSubmoduleNeedsSync] = useState(null);
   const [submoduleSyncing, setSubmoduleSyncing] = useState(false);
   const [submoduleBannerDismissed, setSubmoduleBannerDismissed] = useState(false);
@@ -23,23 +22,20 @@ export function SettingsView() {
       return;
     }
     try {
-      const [s, p, n, sub, e] = await Promise.all([
+      const [s, p, sub, e] = await Promise.all([
         status.get(),
         prerequisites.list(),
-        notices.list(),
         submodule.getSyncStatus(),
         env.getStatus(),
       ]);
       setAppStatus(s ?? null);
       setPrereqList(Array.isArray(p) ? p : []);
-      setNoticesList(Array.isArray(n) ? n : []);
       const needs = sub?.needsSync;
       setSubmoduleNeedsSync(Array.isArray(needs) && needs.length > 0 ? needs : null);
       setEnvStatus(e ?? null);
     } catch {
       setAppStatus(null);
       setPrereqList([]);
-      setNoticesList([]);
       setSubmoduleNeedsSync(null);
       setEnvStatus(null);
     }
@@ -65,9 +61,15 @@ export function SettingsView() {
   const tabs = [
     { id: 'status', label: 'General Status', icon: <SettingsIcon size={16} /> },
     { id: 'prereqs', label: 'Prerequisites', icon: <Layout size={16} /> },
-    { id: 'notices', label: 'Notices', icon: <AlertTriangle size={16} />, count: noticesList.length },
     { id: 'env', label: 'Environment', icon: <Terminal size={16} /> },
   ];
+
+  useEffect(() => {
+    const labels = { status: 'General Status', prereqs: 'Prerequisites', env: 'Environment' };
+    const label = labels[activeTab] ?? null;
+    onBreadcrumbChange?.(label);
+    return () => onBreadcrumbChange?.(null);
+  }, [activeTab, onBreadcrumbChange]);
 
   const formatBool = (value) => (value ? 'Yes' : 'No');
   const projectSummary = appStatus?.projectsTotal != null
@@ -264,38 +266,6 @@ export function SettingsView() {
                         <div className="flex flex-col items-end">
                           {p.required && <span className="badge badge--neutral">Required</span>}
                           {p.message && <span className="text-xs text-warning">{p.message}</span>}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'notices' && (
-            <div className="card">
-              <div className="card__body p-0">
-                {noticesList.length === 0 && !loading ? (
-                  <div className="p-4 flex flex-col items-center justify-center text-sub">
-                    <CheckCircle size={48} style={{ color: 'var(--color-success)', opacity: 0.5, marginBottom: '1rem' }} />
-                    <p>No notices. Everything looks good!</p>
-                  </div>
-                ) : (
-                  <ul className="list-group">
-                    {noticesList.map((n, i) => (
-                      <li
-                        key={n.id ?? i}
-                        className={`list-group__item ${n.severity === 'error' ? 'bg-danger-subtle' : n.severity === 'warn' ? 'bg-warning-subtle' : ''
-                          }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          {n.severity === 'error' && <XCircle size={18} style={{ color: 'var(--color-danger)', marginTop: 2 }} />}
-                          {n.severity === 'warn' && <AlertCircle size={18} style={{ color: 'var(--color-warning)', marginTop: 2 }} />}
-                          <div className="flex flex-col">
-                            <span>{n.message}</span>
-                            {n.actionKey && <span className="text-xs text-sub mt-1">Action: {n.actionKey}</span>}
-                          </div>
                         </div>
                       </li>
                     ))}

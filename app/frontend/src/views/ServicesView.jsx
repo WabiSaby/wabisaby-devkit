@@ -17,7 +17,13 @@ import {
   Loader2,
   Shield,
   Network,
-  Plug
+  Plug,
+  Globe,
+  Radio,
+  RadioTower,
+  CircleDot,
+  Router,
+  Zap
 } from 'lucide-react';
 
 export function ServicesView({
@@ -355,11 +361,31 @@ function ServiceCard({ service, onStart, onStop, onLogs, pendingAction }) {
       <div className="card__header">
         <div className="card__icon-wrap">
           {service.group === 'backend' ? (
-            <Shield size={20} />
+            service.name === 'api' ? (
+              <Globe size={20} aria-label="API" />
+            ) : service.name === 'websocket' ? (
+              <Radio size={20} aria-label="WebSocket" />
+            ) : (
+              <Shield size={20} />
+            )
           ) : service.group === 'mesh' ? (
-            <Network size={20} />
+            service.name === 'network-coordinator' ? (
+              <RadioTower size={20} aria-label="Coordinator" />
+            ) : service.name === 'node' ? (
+              <CircleDot size={20} aria-label="Node" />
+            ) : (
+              <Network size={20} />
+            )
           ) : service.group === 'plugins' ? (
-            <Plug size={20} />
+            service.name === 'capabilities-server' ? (
+              <Router size={20} aria-label="Gateway" />
+            ) : service.name === 'stateful-plugin-worker' ? (
+              <Radio size={20} aria-label="Live connections" />
+            ) : service.name === 'stateless-plugin-worker' ? (
+              <Zap size={20} aria-label="Quick execution" />
+            ) : (
+              <Plug size={20} />
+            )
           ) : (
             <Activity size={20} />
           )}

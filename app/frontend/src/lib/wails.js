@@ -61,6 +61,10 @@ export const proto = {
     stopStream: () => getApp()?.StopProtoStream(),
 };
 
+export const generate = {
+    run: () => callForSuccess(getApp()?.RunGenerate()),
+};
+
 export const env = {
     getStatus: () => getApp()?.GetEnvStatus() ?? Promise.resolve(null),
     copyExample: () => callForSuccess(getApp()?.CopyEnvExample()),

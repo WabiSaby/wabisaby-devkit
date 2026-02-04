@@ -71,6 +71,9 @@
   // MacOS Safe Area
   --title-bar-height: max(32px, env(safe-area-inset-top, 32px));
 
+  // Header row (sidebar header + topbar) – same height so the divider line is continuous
+  --header-row-height: 48px;
+
   // Transitions
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275); // Bouncy
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
