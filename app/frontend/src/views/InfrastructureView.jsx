@@ -17,7 +17,9 @@ import {
   Layers,
   Cloud,
   Container,
-  HardDrive
+  HardDrive,
+  Shield,
+  Lock
 } from 'lucide-react';
 
 export function InfrastructureView() {
@@ -434,6 +436,8 @@ function getInfrastructureIcon(name = '') {
   if (key.includes('postgres')) return { icon: Database, color: '#38bdf8' };
   if (key.includes('redis')) return { icon: Layers, color: '#f97316' };
   if (key.includes('minio') || key.includes('s3')) return { icon: Cloud, color: '#22d3ee' };
+  if (key.includes('keycloak')) return { icon: Shield, color: '#7c3aed' };
+  if (key.includes('vault')) return { icon: Lock, color: '#fbbf24' };
   if (key.includes('rabbit') || key.includes('mq')) return { icon: Container, color: '#a78bfa' };
   if (key.includes('elastic') || key.includes('search')) return { icon: HardDrive, color: '#facc15' };
   return { icon: Server, color: null };

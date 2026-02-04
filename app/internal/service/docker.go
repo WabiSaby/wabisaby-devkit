@@ -11,12 +11,13 @@ import (
 func CheckServiceStatus(name string, port int, devkitRoot string) string {
 	// Map service names to Docker container names
 	containerMap := map[string]string{
-		"PostgreSQL": "wabisaby-postgres",
-		"Redis":      "wabisaby-redis",
+		"PostgreSQL":     "wabisaby-postgres",
+		"Redis":          "wabisaby-redis",
 		"RedisCommander": "wabisaby-redis-commander",
-		"MinIO":      "wabisaby-minio",
-		"Vault":      "wabisaby-vault",
-		"pgAdmin":    "wabisaby-pgadmin",
+		"MinIO":          "wabisaby-minio",
+		"Vault":          "wabisaby-vault",
+		"pgAdmin":        "wabisaby-pgadmin",
+		"Keycloak":       "wabisaby-keycloak",
 	}
 
 	containerName, ok := containerMap[name]
@@ -40,12 +41,13 @@ func CheckServiceStatus(name string, port int, devkitRoot string) string {
 // StartService starts a Docker service
 func StartService(name string, devkitRoot string) error {
 	serviceMap := map[string]string{
-		"PostgreSQL": "postgres",
-		"Redis":      "redis",
+		"PostgreSQL":     "postgres",
+		"Redis":          "redis",
 		"RedisCommander": "redis-commander",
-		"MinIO":      "minio",
-		"Vault":      "vault",
-		"pgAdmin":    "pgadmin",
+		"MinIO":          "minio",
+		"Vault":          "vault",
+		"pgAdmin":        "pgadmin",
+		"Keycloak":       "keycloak",
 	}
 
 	composeServiceName, ok := serviceMap[name]
@@ -73,12 +75,13 @@ func StartService(name string, devkitRoot string) error {
 // StopService stops a Docker service
 func StopService(name string, devkitRoot string) error {
 	serviceMap := map[string]string{
-		"PostgreSQL": "postgres",
-		"Redis":      "redis",
+		"PostgreSQL":     "postgres",
+		"Redis":          "redis",
 		"RedisCommander": "redis-commander",
-		"MinIO":      "minio",
-		"Vault":      "vault",
-		"pgAdmin":    "pgadmin",
+		"MinIO":          "minio",
+		"Vault":          "vault",
+		"pgAdmin":        "pgadmin",
+		"Keycloak":       "keycloak",
 	}
 
 	composeServiceName, ok := serviceMap[name]

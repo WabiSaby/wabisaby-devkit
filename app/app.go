@@ -632,6 +632,7 @@ var serviceUIURLs = map[string]string{
 	"RedisCommander": "http://localhost:8081",
 	"MinIO":          "http://localhost:9001",
 	"Vault":          "http://localhost:8200",
+	"Keycloak":       "http://localhost:8180/admin",
 }
 
 // ListServices returns all Docker services with their status
@@ -642,6 +643,7 @@ func (a *App) ListServices() []model.Service {
 		{Name: "RedisCommander", Port: 8081},
 		{Name: "MinIO", Port: 9000},
 		{Name: "Vault", Port: 8200},
+		{Name: "Keycloak", Port: 8180},
 		{Name: "pgAdmin", Port: 5050},
 	}
 
@@ -702,6 +704,7 @@ var serviceNameMap = map[string]string{
 	"RedisCommander": "redis-commander",
 	"MinIO":          "minio",
 	"Vault":          "vault",
+	"Keycloak":       "keycloak",
 	"pgAdmin":        "pgadmin",
 }
 
