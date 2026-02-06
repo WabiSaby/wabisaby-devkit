@@ -1,8 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { status, prerequisites, submodule, env } from '../lib/wails';
 import {
   RefreshCw, CheckCircle, XCircle, GitMerge, X,
-  Settings as SettingsIcon, Layout, Terminal
+  Settings as SettingsIcon, Layout, Terminal,
+  Clock, GitBranch, FolderOpen, Boxes, Server, FileCode, Copy,
+  Eye, EyeOff, Lock, Plus, Trash2, Pencil, Save, AlertTriangle
 } from 'lucide-react';
 
 export function SettingsView({ onBreadcrumbChange }) {
@@ -58,6 +60,213 @@ export function SettingsView({ onBreadcrumbChange }) {
     }
   };
 
+  // --- Env var management state ---
+  const [revealedVars, setRevealedVars] = useState({});
+  const [editingVar, setEditingVar] = useState(null); // { name, value }
+  const [editValue, setEditValue] = useState('');
+  const [addingVar, setAddingVar] = useState(false);
+  const [newVarName, setNewVarName] = useState('');
+  const [newVarValue, setNewVarValue] = useState('');
+  const [envSaving, setEnvSaving] = useState(false);
+  const [envError, setEnvError] = useState(null);
+  const editInputRef = useRef(null);
+  const addNameRef = useRef(null);
+
+  const toggleReveal = (name) => setRevealedVars((prev) => ({ ...prev, [name]: !prev[name] }));
+
+  const startEditing = (v) => {
+    setEditingVar(v.name);
+    setEditValue(v.value ?? '');
+    setEnvError(null);
+    setTimeout(() => editInputRef.current?.focus(), 0);
+  };
+
+  const cancelEditing = () => {
+    setEditingVar(null);
+    setEditValue('');
+    setEnvError(null);
+  };
+
+  const saveVar = async (name, value) => {
+    setEnvSaving(true);
+    setEnvError(null);
+    const { success, message } = await env.updateVar(name, value);
+    setEnvSaving(false);
+    if (success) {
+      setEditingVar(null);
+      setEditValue('');
+      fetchAll();
+    } else {
+      setEnvError(message ?? 'Failed to save variable');
+    }
+  };
+
+  const deleteVar = async (name) => {
+    setEnvSaving(true);
+    setEnvError(null);
+    const { success, message } = await env.deleteVar(name);
+    setEnvSaving(false);
+    if (success) {
+      fetchAll();
+    } else {
+      setEnvError(message ?? 'Failed to delete variable');
+    }
+  };
+
+  const handleCopyExample = async () => {
+    setEnvSaving(true);
+    setEnvError(null);
+    const { success, message } = await env.copyExample();
+    setEnvSaving(false);
+    if (success) {
+      fetchAll();
+    } else {
+      setEnvError(message ?? 'Failed to copy env.example');
+    }
+  };
+
+  const startAdding = () => {
+    setAddingVar(true);
+    setNewVarName('');
+    setNewVarValue('');
+    setEnvError(null);
+    setTimeout(() => addNameRef.current?.focus(), 0);
+  };
+
+  const cancelAdding = () => {
+    setAddingVar(false);
+    setNewVarName('');
+    setNewVarValue('');
+    setEnvError(null);
+  };
+
+  const saveNewVar = async () => {
+    const name = newVarName.trim();
+    if (!name) {
+      setEnvError('Variable name cannot be empty');
+      return;
+    }
+    setEnvSaving(true);
+    setEnvError(null);
+    const { success, message } = await env.updateVar(name, newVarValue);
+    setEnvSaving(false);
+    if (success) {
+      setAddingVar(false);
+      setNewVarName('');
+      setNewVarValue('');
+      fetchAll();
+    } else {
+      setEnvError(message ?? 'Failed to add variable');
+    }
+  };
+
+  const maskValue = (value) => value ? '\u2022'.repeat(Math.min(value.length, 24)) : '';
+
+  const renderVarGroup = (title, vars, allowDelete = false) => {
+    if (!vars || vars.length === 0) return null;
+    return (
+      <div className="env-group">
+        <h4 className="env-group__title">{title}</h4>
+        <ul className="env-var-list">
+          {vars.map((v) => {
+            const isEditing = editingVar === v.name;
+            const isRevealed = revealedVars[v.name];
+            const displayValue = v.sensitive && !isRevealed ? maskValue(v.value) : (v.value || '');
+            return (
+              <li key={v.name} className={`env-var-row ${!v.isSet ? 'env-var-row--unset' : ''}`}>
+                <div className="env-var-row__name">
+                  <code>{v.name}</code>
+                  <span className="env-var-row__badges">
+                    {v.required && <span className="badge badge--neutral">Required</span>}
+                    {v.sensitive && (
+                      <span className="badge badge--sensitive" title="Sensitive value">
+                        <Lock size={10} />
+                        Sensitive
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="env-var-row__value">
+                  {isEditing ? (
+                    <div className="env-var-row__edit">
+                      <input
+                        ref={editInputRef}
+                        type={v.sensitive && !isRevealed ? 'password' : 'text'}
+                        className="env-var-row__input"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveVar(v.name, editValue);
+                          if (e.key === 'Escape') cancelEditing();
+                        }}
+                        disabled={envSaving}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn--icon btn--ghost"
+                        onClick={() => saveVar(v.name, editValue)}
+                        disabled={envSaving}
+                        title="Save"
+                      >
+                        <Save size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--icon btn--ghost"
+                        onClick={cancelEditing}
+                        disabled={envSaving}
+                        title="Cancel"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="env-var-row__display">
+                      <span className={`env-var-row__val ${v.sensitive && !isRevealed ? 'env-var-row__val--masked' : ''} ${!v.isSet ? 'env-var-row__val--empty' : ''}`}>
+                        {v.isSet ? displayValue : '(not set)'}
+                      </span>
+                      <div className="env-var-row__actions">
+                        {v.sensitive && v.isSet && (
+                          <button
+                            type="button"
+                            className="btn btn--icon btn--ghost"
+                            onClick={() => toggleReveal(v.name)}
+                            title={isRevealed ? 'Hide value' : 'Reveal value'}
+                          >
+                            {isRevealed ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="btn btn--icon btn--ghost"
+                          onClick={() => startEditing(v)}
+                          title="Edit"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        {allowDelete && (
+                          <button
+                            type="button"
+                            className="btn btn--icon btn--ghost btn--danger"
+                            onClick={() => deleteVar(v.name)}
+                            title="Delete"
+                            disabled={envSaving}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  };
+
   const tabs = [
     { id: 'status', label: 'General Status', icon: <SettingsIcon size={16} /> },
     { id: 'prereqs', label: 'Prerequisites', icon: <Layout size={16} /> },
@@ -87,6 +296,14 @@ export function SettingsView({ onBreadcrumbChange }) {
   const runtimeSummary = appStatus?.os && appStatus?.arch && appStatus?.goVersion
     ? `${appStatus.os}/${appStatus.arch} • ${appStatus.goVersion}`
     : null;
+
+  const tabSubtitles = {
+    status: 'System health, paths, and runtime at a glance.',
+    prereqs: 'Tools and runtimes required by the devkit.',
+    env: 'Environment file and variables.',
+  };
+  const prereqInstalled = prereqList.filter((p) => p.installed).length;
+  const prereqTotal = prereqList.length;
 
   return (
     <div className="view view--has-sidebar view--settings">
@@ -118,7 +335,7 @@ export function SettingsView({ onBreadcrumbChange }) {
         <div className="view__header">
           <div className="view__title-group">
             <h2 className="view__title">{tabs.find(t => t.id === activeTab)?.label}</h2>
-            <p className="view__subtitle">Configure and monitor system status.</p>
+            <p className="view__subtitle">{tabSubtitles[activeTab] ?? 'Configure and monitor.'}</p>
           </div>
         </div>
 
@@ -146,159 +363,408 @@ export function SettingsView({ onBreadcrumbChange }) {
           )}
 
           {activeTab === 'status' && (
-            <section className="settings-section">
-              <div className="card">
-                <div className="card__header">
-                  <h3 className="card__title">System Status</h3>
-                </div>
-                <div className="card__body">
-                  {appStatus ? (
-                    <div className="flex flex-col gap-2">
-                      <div className="status-row">
-                        <span className="status-label">Message:</span>
-                        <span className="status-value">{appStatus.message ?? JSON.stringify(appStatus)}</span>
-                      </div>
-                      {appStatus.generatedAt && (
-                        <div className="status-row">
-                          <span className="status-label">Updated:</span>
-                          <span className="status-value">{appStatus.generatedAt}</span>
-                        </div>
-                      )}
-                      {appStatus.startedAt && (
-                        <div className="status-row">
-                          <span className="status-label">Started:</span>
-                          <span className="status-value">{appStatus.startedAt}</span>
-                        </div>
-                      )}
+            <section className="settings-section settings-status">
+              {appStatus ? (
+                <>
+                  <div className="status-overview card">
+                    <div className="status-overview__message">
+                      {appStatus.message ?? 'System status'}
+                    </div>
+                    <div className="status-overview__metrics">
                       {appStatus.uptime && (
-                        <div className="status-row">
-                          <span className="status-label">Uptime:</span>
-                          <span className="status-value">{appStatus.uptime}</span>
-                        </div>
+                        <span className="status-metric" title="Uptime">
+                          <Clock size={14} />
+                          {appStatus.uptime}
+                        </span>
                       )}
                       {(appStatus.gitBranch || appStatus.gitCommit) && (
-                        <div className="status-row">
-                          <span className="status-label">Git:</span>
-                          <span className="status-value">
-                            {appStatus.gitBranch ?? 'unknown'}
-                            {appStatus.gitCommit ? ` @ ${appStatus.gitCommit}` : ''}
-                            {appStatus.gitDirty != null ? ` • dirty: ${formatBool(appStatus.gitDirty)}` : ''}
-                          </span>
+                        <span className="status-metric status-metric--mono" title="Git">
+                          <GitBranch size={14} />
+                          {appStatus.gitBranch ?? '—'}
+                          {appStatus.gitCommit ? ` @ ${String(appStatus.gitCommit).slice(0, 7)}` : ''}
+                        </span>
+                      )}
+                      {appStatus.projectsTotal != null && (
+                        <span className="status-metric" title="Projects">
+                          <Boxes size={14} />
+                          {appStatus.projectsCloned ?? 0}/{appStatus.projectsTotal}
+                        </span>
+                      )}
+                      {(appStatus.backendTotal != null || appStatus.dockerTotal != null) && (
+                        <span className="status-metric" title="Services">
+                          <Server size={14} />
+                          {(appStatus.backendRunning ?? 0) + (appStatus.dockerRunning ?? 0)}/{(appStatus.backendTotal ?? 0) + (appStatus.dockerTotal ?? 0)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="status-details">
+                    <h3 className="status-details__title">Status details</h3>
+                    <div className="status-grid">
+                      {(appStatus.generatedAt || appStatus.startedAt || appStatus.uptime) && (
+                        <div className="card status-group status-group--col-1">
+                          <div className="status-group__header">
+                            <Clock size={18} className="status-group__icon" />
+                            <h4 className="status-group__title">Overview</h4>
+                          </div>
+                          <div className="status-group__body">
+                            {appStatus.generatedAt && (
+                              <div className="status-row">
+                                <span className="status-label">Updated</span>
+                                <span className="status-value status-value--mono">{appStatus.generatedAt}</span>
+                              </div>
+                            )}
+                            {appStatus.startedAt && (
+                              <div className="status-row">
+                                <span className="status-label">Started</span>
+                                <span className="status-value status-value--mono">{appStatus.startedAt}</span>
+                              </div>
+                            )}
+                            {appStatus.uptime && (
+                              <div className="status-row">
+                                <span className="status-label">Uptime</span>
+                                <span className="status-value">{appStatus.uptime}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
+
+                      {(appStatus.gitBranch || appStatus.gitCommit != null || appStatus.wabisabyCore) && (
+                        <div className="card status-group status-group--col-2">
+                          <div className="status-group__header">
+                            <GitBranch size={18} className="status-group__icon" />
+                            <h4 className="status-group__title">Repository</h4>
+                          </div>
+                          <div className="status-group__body">
+                            {appStatus.gitBranch != null && (
+                              <div className="status-row">
+                                <span className="status-label">Branch</span>
+                                <span className="status-value status-value--mono">{appStatus.gitBranch}</span>
+                              </div>
+                            )}
+                            {appStatus.gitCommit && (
+                              <div className="status-row">
+                                <span className="status-label">Commit</span>
+                                <span className="status-value status-value--mono">{appStatus.gitCommit}</span>
+                              </div>
+                            )}
+                            {appStatus.gitDirty != null && (
+                              <div className="status-row">
+                                <span className="status-label">Dirty</span>
+                                <span className="status-value">{formatBool(appStatus.gitDirty)}</span>
+                              </div>
+                            )}
+                            {appStatus.wabisabyCore && (
+                              <div className="status-row">
+                                <span className="status-label">Core</span>
+                                <span className="status-value status-value--mono">{appStatus.wabisabyCore}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {(projectSummary || backendSummary || dockerSummary) && (
+                        <div className="card status-group status-group--col-1">
+                          <div className="status-group__header">
+                            <Boxes size={18} className="status-group__icon" />
+                            <h4 className="status-group__title">Workspace</h4>
+                          </div>
+                          <div className="status-group__body">
+                            {projectSummary && (
+                              <div className="status-row">
+                                <span className="status-label">Projects</span>
+                                <span className="status-value">{projectSummary}</span>
+                              </div>
+                            )}
+                            {(backendSummary || dockerSummary) && (
+                              <div className="status-row">
+                                <span className="status-label">Services</span>
+                                <span className="status-value">
+                                  {backendSummary && `Backend ${backendSummary}`}
+                                  {backendSummary && dockerSummary ? ' · ' : ''}
+                                  {dockerSummary && `Docker ${dockerSummary}`}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {(appStatus.devkitRoot || appStatus.projectsDir) && (
-                        <div className="status-row">
-                          <span className="status-label">Paths:</span>
-                          <span className="status-value">
-                            {appStatus.devkitRoot && `DevKit: ${appStatus.devkitRoot}`}
-                            {appStatus.devkitRoot && appStatus.projectsDir ? ' • ' : ''}
-                            {appStatus.projectsDir && `Projects: ${appStatus.projectsDir}`}
-                          </span>
+                        <div className="card status-group status-group--col-2">
+                          <div className="status-group__header">
+                            <FolderOpen size={18} className="status-group__icon" />
+                            <h4 className="status-group__title">Paths</h4>
+                          </div>
+                          <div className="status-group__body">
+                            {appStatus.devkitRoot && (
+                              <div className="status-row">
+                                <span className="status-label">DevKit</span>
+                                <span className="status-value status-value--mono status-value--wrap">{appStatus.devkitRoot}</span>
+                              </div>
+                            )}
+                            {appStatus.projectsDir && (
+                              <div className="status-row">
+                                <span className="status-label">Projects</span>
+                                <span className="status-value status-value--mono status-value--wrap">{appStatus.projectsDir}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
-                      {appStatus.wabisabyCore && (
-                        <div className="status-row">
-                          <span className="status-label">Core:</span>
-                          <span className="status-value">{appStatus.wabisabyCore}</span>
-                        </div>
-                      )}
-                      {projectSummary && (
-                        <div className="status-row">
-                          <span className="status-label">Projects:</span>
-                          <span className="status-value">{projectSummary}</span>
-                        </div>
-                      )}
-                      {(backendSummary || dockerSummary) && (
-                        <div className="status-row">
-                          <span className="status-label">Services:</span>
-                          <span className="status-value">
-                            {backendSummary && `Backend ${backendSummary}`}
-                            {backendSummary && dockerSummary ? ' • ' : ''}
-                            {dockerSummary && `Docker ${dockerSummary}`}
-                          </span>
-                        </div>
-                      )}
-                      {(appStatus.envFilePresent != null || envSummary) && (
-                        <div className="status-row">
-                          <span className="status-label">Environment:</span>
-                          <span className="status-value">
-                            {appStatus.envFilePresent != null && `Env file: ${formatBool(appStatus.envFilePresent)}`}
-                            {appStatus.envExamplePresent != null ? ` • Example: ${formatBool(appStatus.envExamplePresent)}` : ''}
-                            {envSummary ? ` • ${envSummary}` : ''}
-                          </span>
-                        </div>
-                      )}
-                      {runtimeSummary && (
-                        <div className="status-row">
-                          <span className="status-label">Runtime:</span>
-                          <span className="status-value">{runtimeSummary}</span>
+
+                      {((appStatus.envFilePresent != null || appStatus.envExamplePresent != null) || envSummary || runtimeSummary) && (
+                        <div className="card status-group status-group--full">
+                          <div className="status-group__header">
+                            <FileCode size={18} className="status-group__icon" />
+                            <h4 className="status-group__title">Environment & runtime</h4>
+                          </div>
+                          <div className="status-group__body">
+                            {appStatus.envFilePresent != null && (
+                              <div className="status-row">
+                                <span className="status-label">Env file</span>
+                                <span className="status-value">{formatBool(appStatus.envFilePresent)}</span>
+                              </div>
+                            )}
+                            {appStatus.envExamplePresent != null && (
+                              <div className="status-row">
+                                <span className="status-label">.env.example</span>
+                                <span className="status-value">{formatBool(appStatus.envExamplePresent)}</span>
+                              </div>
+                            )}
+                            {envSummary && (
+                              <div className="status-row">
+                                <span className="status-label">Required vars</span>
+                                <span className="status-value">{envSummary}</span>
+                              </div>
+                            )}
+                            {runtimeSummary && (
+                              <div className="status-row">
+                                <span className="status-label">Runtime</span>
+                                <span className="status-value status-value--mono">{runtimeSummary}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
-                  ) : (
+                  </div>
+                </>
+              ) : (
+                <div className="card">
+                  <div className="card__body">
                     <p className="text-sub">No status information available.</p>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeTab === 'prereqs' && (
+            <section className="settings-section settings-prereqs">
+              <div className="card settings-prereqs__card">
+                <div className="card__header settings-prereqs__header">
+                  <div className="settings-prereqs__title-row">
+                    <h3 className="card__title">Prerequisites</h3>
+                    {prereqTotal > 0 && (
+                      <span className="settings-prereqs__summary">
+                        {prereqInstalled} of {prereqTotal} installed
+                      </span>
+                    )}
+                  </div>
+                  <p className="settings-prereqs__intro">
+                    Tools and runtimes the devkit depends on. Required items must be installed for full functionality.
+                  </p>
+                </div>
+                {prereqTotal > 0 && (
+                  <div className="settings-prereqs__strip">
+                    <span className={`settings-prereqs__pill ${prereqInstalled === prereqTotal ? 'settings-prereqs__pill--ok' : ''}`}>
+                      <CheckCircle size={14} />
+                      {prereqInstalled} installed
+                    </span>
+                    {prereqInstalled < prereqTotal && (
+                      <span className="settings-prereqs__pill settings-prereqs__pill--missing">
+                        <XCircle size={14} />
+                        {prereqTotal - prereqInstalled} missing
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div className="card__body p-0">
+                  {prereqList.length === 0 && !loading ? (
+                    <div className="settings-empty">No prerequisites configured.</div>
+                  ) : (
+                    <ul className="settings-prereqs__list">
+                      {prereqList.map((p, i) => (
+                        <li
+                          key={i}
+                          className={`settings-prereqs__item ${p.installed ? 'settings-prereqs__item--ok' : 'settings-prereqs__item--missing'} ${p.required ? 'settings-prereqs__item--required' : ''}`}
+                        >
+                          <div className="settings-prereqs__item-main">
+                            {p.installed ? (
+                              <CheckCircle size={20} className="settings-prereqs__item-icon settings-prereqs__item-icon--ok" />
+                            ) : (
+                              <XCircle size={20} className="settings-prereqs__item-icon settings-prereqs__item-icon--missing" />
+                            )}
+                            <div className="settings-prereqs__item-text">
+                              <span className="settings-prereqs__item-name">{p.name}</span>
+                              {p.version && <span className="settings-prereqs__item-version">{p.version}</span>}
+                              {p.message && !p.installed && (
+                                <span className="settings-prereqs__item-message">{p.message}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="settings-prereqs__item-meta">
+                            {p.required && <span className="badge badge--neutral">Required</span>}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
               </div>
             </section>
           )}
 
-          {activeTab === 'prereqs' && (
-            <div className="card">
-              <div className="card__body p-0">
-                {prereqList.length === 0 && !loading ? (
-                  <div className="p-4 text-center text-sub">No prerequisites configured.</div>
-                ) : (
-                  <ul className="list-group">
-                    {prereqList.map((p, i) => (
-                      <li key={i} className="list-group__item">
-                        <div className="flex items-center gap-3">
-                          {p.installed ? (
-                            <CheckCircle size={18} style={{ color: 'var(--color-success)' }} />
-                          ) : (
-                            <XCircle size={18} style={{ color: 'var(--color-danger)' }} />
-                          )}
-                          <div className="flex flex-col">
-                            <span className="font-medium">{p.name}</span>
-                            {p.version && <span className="text-sm text-sub">{p.version}</span>}
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          {p.required && <span className="badge badge--neutral">Required</span>}
-                          {p.message && <span className="text-xs text-warning">{p.message}</span>}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          )}
-
           {activeTab === 'env' && (
-            <div className="card">
-              <div className="card__header">
-                <h3 className="card__title">Environment Variables</h3>
-              </div>
-              <div className="card__body">
-                {envStatus ? (
-                  <div className="flex items-center gap-4">
-                    <div className={`status-indicator ${envStatus.hasEnvFile ? 'status-indicator--ready' : 'status-indicator--error'}`} />
-                    <div className="flex flex-col">
-                      <span className="font-medium">.env file</span>
-                      <span className="text-sm text-sub">
-                        {envStatus.hasEnvFile ? 'Present and loaded.' : 'Missing. Application might not work correctly.'}
-                      </span>
+            <section className="settings-section settings-env">
+              {/* Status banner */}
+              <div className="card settings-env__card">
+                <div className="card__header">
+                  <h3 className="card__title">.env file</h3>
+                  <p className="settings-env__intro">
+                    Configuration is loaded from a <code>.env</code> file in the project root.
+                  </p>
+                </div>
+                <div className="card__body">
+                  {envStatus ? (
+                    <div className="settings-env__status">
+                      <div className={`status-indicator status-indicator--lg ${envStatus.hasEnvFile ? 'status-indicator--ready' : 'status-indicator--error'}`} />
+                      <div className="settings-env__status-text">
+                        <span className="settings-env__status-label">
+                          {envStatus.hasEnvFile ? 'Present and loaded' : 'Missing'}
+                        </span>
+                        <span className="settings-env__status-desc">
+                          {envStatus.hasEnvFile
+                            ? 'Environment variables are loaded from .env. Restart services after changes.'
+                            : 'Create .env from env.example or add variables below.'}
+                        </span>
+                      </div>
+                      {envStatus.hasExample && !envStatus.hasEnvFile && (
+                        <button
+                          type="button"
+                          className="btn btn--secondary settings-env__action"
+                          onClick={handleCopyExample}
+                          disabled={envSaving}
+                        >
+                          <Copy size={14} />
+                          Copy env.example
+                        </button>
+                      )}
                     </div>
-                    {envStatus.hasExample && !envStatus.hasEnvFile && (
-                      <button className="btn btn--secondary ml-auto">Copy .env.example</button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sub">Loading environment status...</p>
-                )}
+                  ) : (
+                    <div className="settings-env__loading">
+                      <div className="loading-spinner settings-env__spinner" />
+                      <span>Checking environment...</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+
+              {/* Error banner */}
+              {envError && (
+                <div className="banner banner--error">
+                  <div className="banner__content">
+                    <AlertTriangle size={16} />
+                    <span>{envError}</span>
+                  </div>
+                  <button type="button" onClick={() => setEnvError(null)} className="btn btn--ghost">
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+
+              {/* Restart reminder */}
+              {envStatus?.hasEnvFile && (
+                <div className="settings-env__tip">
+                  <AlertTriangle size={14} />
+                  <span>Variables are read at service startup. Restart running services to apply changes.</span>
+                </div>
+              )}
+
+              {/* Variable groups */}
+              {envStatus && (
+                <div className="card settings-env__vars-card">
+                  <div className="card__body p-0">
+                    {renderVarGroup('Required', envStatus.requiredVars)}
+                    {renderVarGroup('Optional', envStatus.optionalVars)}
+                    {renderVarGroup('Custom', envStatus.customVars, true)}
+
+                    {/* Add variable form */}
+                    <div className="env-group env-group--add">
+                      {addingVar ? (
+                        <div className="env-var-add-form">
+                          <input
+                            ref={addNameRef}
+                            type="text"
+                            className="env-var-row__input env-var-add-form__name"
+                            placeholder="VARIABLE_NAME"
+                            value={newVarName}
+                            onChange={(e) => setNewVarName(e.target.value.toUpperCase())}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Escape') cancelAdding();
+                            }}
+                            disabled={envSaving}
+                          />
+                          <span className="env-var-add-form__eq">=</span>
+                          <input
+                            type="text"
+                            className="env-var-row__input env-var-add-form__value"
+                            placeholder="value"
+                            value={newVarValue}
+                            onChange={(e) => setNewVarValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveNewVar();
+                              if (e.key === 'Escape') cancelAdding();
+                            }}
+                            disabled={envSaving}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn--primary btn--sm"
+                            onClick={saveNewVar}
+                            disabled={envSaving || !newVarName.trim()}
+                          >
+                            <Save size={14} />
+                            Add
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn--ghost btn--sm"
+                            onClick={cancelAdding}
+                            disabled={envSaving}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn--secondary btn--sm env-var-add-btn"
+                          onClick={startAdding}
+                        >
+                          <Plus size={14} />
+                          Add variable
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
           )}
 
         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Bell, CheckCircle, XCircle, AlertCircle, ChevronRight, Settings, Boxes, Server, RefreshCw } from 'lucide-react';
+import { Bell, CheckCircle, XCircle, AlertCircle, ChevronRight, Settings, Boxes, Server, RefreshCw, Search, Command } from 'lucide-react';
 import { notices, submodule, generate } from '../lib/wails';
 
 const VIEW_LABELS = {
@@ -22,7 +22,7 @@ const ACTION_CONFIG = {
   generate: { label: 'Run Generate', icon: RefreshCw, action: 'generate' },
 };
 
-export function TopBar({ currentView, breadcrumbSub, onNavigate }) {
+export function TopBar({ currentView, breadcrumbSub, onNavigate, onOpenPalette }) {
   const [noticesList, setNoticesList] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
@@ -141,6 +141,18 @@ export function TopBar({ currentView, breadcrumbSub, onNavigate }) {
         </ol>
       </nav>
       <div className="topbar__right">
+        <button
+          type="button"
+          className="topbar__command-btn"
+          onClick={onOpenPalette}
+          title="Command Palette (⌘K)"
+        >
+          <Search size={14} />
+          <span>Commands</span>
+          <kbd className="topbar__command-kbd">
+            <Command size={10} />K
+          </kbd>
+        </button>
         <div className="topbar__notifications" ref={dropdownRef}>
           <button
             type="button"

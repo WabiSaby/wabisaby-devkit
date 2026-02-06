@@ -14,6 +14,10 @@ export function CreateTag(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['CreateTag'](arg1, arg2, arg3, arg4);
 }
 
+export function DeleteEnvVar(arg1) {
+  return window['go']['main']['App']['DeleteEnvVar'](arg1);
+}
+
 export function GetEnvStatus() {
   return window['go']['main']['App']['GetEnvStatus']();
 }
@@ -164,6 +168,10 @@ export function SubmoduleSync(arg1) {
 
 export function SubmoduleSyncStatus() {
   return window['go']['main']['App']['SubmoduleSyncStatus']();
+}
+
+export function UpdateEnvVar(arg1, arg2) {
+  return window['go']['main']['App']['UpdateEnvVar'](arg1, arg2);
 }
 
 export function ValidateEnv() {

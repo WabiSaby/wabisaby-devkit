@@ -1,5 +1,7 @@
 package config
 
+import "strings"
+
 // BackendServiceConfig defines a WabiSaby-Go service
 type BackendServiceConfig struct {
 	Name       string
@@ -109,4 +111,44 @@ func OptionalEnvVars() []string {
 		"WABISABY_KEYCLOAK_BASE_URL",
 		"WABISABY_KEYCLOAK_REALM",
 	}
+}
+
+// SensitiveEnvVars returns a set of known sensitive variable names
+func SensitiveEnvVars() map[string]bool {
+	return map[string]bool{
+		"JWT_SECRET":         true,
+		"DATABASE_URL":       true,
+		"REDIS_URL":          true,
+		"STORAGE_ACCESS_KEY": true,
+		"STORAGE_SECRET_KEY": true,
+	}
+}
+
+// IsSensitiveVar returns true if the variable name is classified as sensitive.
+// It checks the known list first, then falls back to a heuristic that matches
+// common secret-related keywords in the variable name.
+func IsSensitiveVar(name string) bool {
+	if SensitiveEnvVars()[name] {
+		return true
+	}
+	// Heuristic: flag vars containing common secret keywords
+	upper := strings.ToUpper(name)
+	for _, keyword := range []string{"SECRET", "PASSWORD", "TOKEN", "PRIVATE_KEY"} {
+		if strings.Contains(upper, keyword) {
+			return true
+		}
+	}
+	return false
+}
+
+// KnownEnvVars returns a set of all known (required + optional) variable names
+func KnownEnvVars() map[string]bool {
+	known := make(map[string]bool)
+	for _, name := range RequiredEnvVars() {
+		known[name] = true
+	}
+	for _, name := range OptionalEnvVars() {
+		known[name] = true
+	}
+	return known
 }

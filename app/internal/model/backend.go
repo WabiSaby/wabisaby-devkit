@@ -34,11 +34,14 @@ type EnvStatus struct {
 	HasExample   bool     `json:"hasExample"`
 	RequiredVars []EnvVar `json:"requiredVars"`
 	OptionalVars []EnvVar `json:"optionalVars"`
+	CustomVars   []EnvVar `json:"customVars"`
 }
 
-// EnvVar represents an environment variable (value hidden for security)
+// EnvVar represents an environment variable
 type EnvVar struct {
-	Name     string `json:"name"`
-	IsSet    bool   `json:"isSet"`
-	Required bool   `json:"required"`
+	Name      string `json:"name"`
+	Value     string `json:"value"`
+	IsSet     bool   `json:"isSet"`
+	Required  bool   `json:"required"`
+	Sensitive bool   `json:"sensitive"`
 }

@@ -28,6 +28,7 @@ func (s *EnvService) GetStatus() (*model.EnvStatus, error) {
 	status := &model.EnvStatus{
 		RequiredVars: []model.EnvVar{},
 		OptionalVars: []model.EnvVar{},
+		CustomVars:   []model.EnvVar{},
 	}
 
 	envPath := filepath.Join(s.wabisabyRoot, ".env")
@@ -41,36 +42,143 @@ func (s *EnvService) GetStatus() (*model.EnvStatus, error) {
 		status.HasExample = true
 	}
 
-	// Read current env vars
-	setVars := make(map[string]bool)
+	// Read current env vars with their values
+	envVars := make(map[string]string)
 	if status.HasEnvFile {
-		vars, err := s.parseEnvFile(envPath)
+		vars, err := s.parseEnvFileValues(envPath)
 		if err == nil {
-			for k := range vars {
-				setVars[k] = true
-			}
+			envVars = vars
 		}
 	}
 
+	known := config.KnownEnvVars()
+
 	// Build required vars list
 	for _, name := range config.RequiredEnvVars() {
+		value, isSet := envVars[name]
 		status.RequiredVars = append(status.RequiredVars, model.EnvVar{
-			Name:     name,
-			IsSet:    setVars[name],
-			Required: true,
+			Name:      name,
+			Value:     value,
+			IsSet:     isSet && value != "",
+			Required:  true,
+			Sensitive: config.IsSensitiveVar(name),
 		})
 	}
 
 	// Build optional vars list
 	for _, name := range config.OptionalEnvVars() {
+		value, isSet := envVars[name]
 		status.OptionalVars = append(status.OptionalVars, model.EnvVar{
-			Name:     name,
-			IsSet:    setVars[name],
-			Required: false,
+			Name:      name,
+			Value:     value,
+			IsSet:     isSet && value != "",
+			Required:  false,
+			Sensitive: config.IsSensitiveVar(name),
 		})
 	}
 
+	// Build custom vars list (vars in .env that aren't in required/optional)
+	for name, value := range envVars {
+		if !known[name] {
+			status.CustomVars = append(status.CustomVars, model.EnvVar{
+				Name:      name,
+				Value:     value,
+				IsSet:     value != "",
+				Required:  false,
+				Sensitive: config.IsSensitiveVar(name),
+			})
+		}
+	}
+
 	return status, nil
+}
+
+// UpdateVar updates or adds an environment variable in the .env file.
+// If the variable exists, its value is replaced in-place preserving file structure.
+// If the variable does not exist, it is appended to the end.
+func (s *EnvService) UpdateVar(name, value string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("variable name cannot be empty")
+	}
+
+	envPath := filepath.Join(s.wabisabyRoot, ".env")
+
+	// If .env doesn't exist, create it with just this variable
+	if _, err := os.Stat(envPath); err != nil {
+		return os.WriteFile(envPath, []byte(name+"="+value+"\n"), 0644)
+	}
+
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		return fmt.Errorf("failed to read .env: %w", err)
+	}
+
+	lines := strings.Split(string(data), "\n")
+	found := false
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		parts := strings.SplitN(trimmed, "=", 2)
+		if len(parts) >= 1 && strings.TrimSpace(parts[0]) == name {
+			lines[i] = name + "=" + value
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		// Append to end, ensuring there's a newline before if needed
+		if len(lines) > 0 && lines[len(lines)-1] == "" {
+			// File already ends with newline, insert before trailing empty
+			lines = append(lines[:len(lines)-1], name+"="+value, "")
+		} else {
+			lines = append(lines, name+"="+value)
+		}
+	}
+
+	output := strings.Join(lines, "\n")
+	return os.WriteFile(envPath, []byte(output), 0644)
+}
+
+// DeleteVar removes an environment variable from the .env file.
+func (s *EnvService) DeleteVar(name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("variable name cannot be empty")
+	}
+
+	envPath := filepath.Join(s.wabisabyRoot, ".env")
+
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		return fmt.Errorf("failed to read .env: %w", err)
+	}
+
+	lines := strings.Split(string(data), "\n")
+	var result []string
+	found := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed != "" && !strings.HasPrefix(trimmed, "#") {
+			parts := strings.SplitN(trimmed, "=", 2)
+			if len(parts) >= 1 && strings.TrimSpace(parts[0]) == name {
+				found = true
+				continue // skip this line
+			}
+		}
+		result = append(result, line)
+	}
+
+	if !found {
+		return fmt.Errorf("variable %s not found in .env", name)
+	}
+
+	output := strings.Join(result, "\n")
+	return os.WriteFile(envPath, []byte(output), 0644)
 }
 
 // CopyExample copies env.example to .env
@@ -118,7 +226,7 @@ func (s *EnvService) Validate() ([]string, error) {
 	}
 
 	// Parse .env
-	vars, err := s.parseEnvFile(envPath)
+	vars, err := s.parseEnvFileValues(envPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse .env: %w", err)
 	}
@@ -126,7 +234,7 @@ func (s *EnvService) Validate() ([]string, error) {
 	// Check required vars
 	var missing []string
 	for _, name := range config.RequiredEnvVars() {
-		if _, ok := vars[name]; !ok {
+		if val, ok := vars[name]; !ok || val == "" {
 			missing = append(missing, name)
 		}
 	}
@@ -134,14 +242,14 @@ func (s *EnvService) Validate() ([]string, error) {
 	return missing, nil
 }
 
-// parseEnvFile parses an env file and returns a map of var names to whether they're set
-func (s *EnvService) parseEnvFile(path string) (map[string]bool, error) {
+// parseEnvFileValues parses an env file and returns a map of var names to values
+func (s *EnvService) parseEnvFileValues(path string) (map[string]string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	vars := make(map[string]bool)
+	vars := make(map[string]string)
 	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -152,8 +260,7 @@ func (s *EnvService) parseEnvFile(path string) (map[string]bool, error) {
 		if len(parts) == 2 {
 			name := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
-			// Consider it set if there's a non-empty value
-			vars[name] = value != ""
+			vars[name] = value
 		}
 	}
 

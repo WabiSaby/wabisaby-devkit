@@ -69,6 +69,8 @@ export const env = {
     getStatus: () => getApp()?.GetEnvStatus() ?? Promise.resolve(null),
     copyExample: () => callForSuccess(getApp()?.CopyEnvExample()),
     validate: () => callForSuccess(getApp()?.ValidateEnv()),
+    updateVar: (name, value) => callForSuccess(getApp()?.UpdateEnvVar(name, value)),
+    deleteVar: (name) => callForSuccess(getApp()?.DeleteEnvVar(name)),
 };
 
 export const prerequisites = {

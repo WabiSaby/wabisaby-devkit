@@ -8,6 +8,8 @@ export function CopyEnvExample():Promise<{[key: string]: string}>;
 
 export function CreateTag(arg1:string,arg2:string,arg3:string,arg4:boolean):Promise<{[key: string]: string}>;
 
+export function DeleteEnvVar(arg1:string):Promise<void>;
+
 export function GetEnvStatus():Promise<model.EnvStatus>;
 
 export function GetMigrationStatus():Promise<model.MigrationStatus>;
@@ -83,5 +85,7 @@ export function StopServiceLogsStream(arg1:string):Promise<void>;
 export function SubmoduleSync(arg1:string):Promise<{[key: string]: string}>;
 
 export function SubmoduleSyncStatus():Promise<{[key: string]: any}>;
+
+export function UpdateEnvVar(arg1:string,arg2:string):Promise<void>;
 
 export function ValidateEnv():Promise<{[key: string]: any}>;

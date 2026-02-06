@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Layout, Boxes, Activity, Settings, PanelLeftClose, PanelLeft, Server, Github, Network, Plug } from 'lucide-react';
 import { WindowIsFullscreen } from '../wailsjs/runtime/runtime';
 import { ProjectsView } from './views/ProjectsView';
@@ -10,12 +10,16 @@ import { ActivityView } from './views/ActivityView';
 import { SettingsView } from './views/SettingsView';
 import { LandingView } from './views/LandingView';
 import { TopBar } from './components/TopBar';
+import { CommandPalette } from './components/CommandPalette';
+import * as api from './lib/wails';
+import { events } from './lib/wails';
 
 function App() {
   const [activeView, setActiveView] = useState('home');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [breadcrumbSub, setBreadcrumbSub] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window.runtime?.WindowIsFullscreen !== 'function') return;
@@ -25,10 +29,40 @@ function App() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const handleNavigate = (view) => {
+  const handleNavigate = useCallback((view) => {
     setActiveView(view);
     setBreadcrumbSub(null);
-  };
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((prev) => !prev);
+  }, []);
+
+  // Command palette context – passed to every command action
+  const paletteCtx = useMemo(() => ({
+    navigate: handleNavigate,
+    toggleSidebar,
+    api,
+  }), [handleNavigate, toggleSidebar]);
+
+  // Cmd+B is handled by the native app menu (View > Toggle Sidebar); listen for the event from Go
+  useEffect(() => {
+    events.on('devkit:toggle-sidebar', () => setSidebarOpen((prev) => !prev));
+    return () => events.off('devkit:toggle-sidebar');
+  }, []);
+
+  // Global shortcut: Cmd+K / Ctrl+K for command palette
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key?.toLowerCase() === 'k') {
+        e.preventDefault();
+        e.stopPropagation();
+        setPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, []);
 
   const renderView = () => {
     switch (activeView) {
@@ -71,7 +105,7 @@ function App() {
                 type="button"
                 className="btn btn--ghost btn--icon"
                 onClick={() => setSidebarOpen((prev) => !prev)}
-                title={sidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+                title={sidebarOpen ? "Collapse Sidebar (⌘B)" : "Expand Sidebar (⌘B)"}
               >
                 {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
               </button>
@@ -129,6 +163,7 @@ function App() {
               currentView={activeView}
               breadcrumbSub={breadcrumbSub}
               onNavigate={handleNavigate}
+              onOpenPalette={() => setPaletteOpen(true)}
             />
             <div className="app__content">
               {activeView !== 'activity' && renderView()}
@@ -161,6 +196,12 @@ function App() {
           </div>
         </footer>
       </div>
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        ctx={paletteCtx}
+      />
     </div>
   );
 }

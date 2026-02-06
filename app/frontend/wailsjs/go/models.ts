@@ -46,8 +46,10 @@ export namespace model {
 	}
 	export class EnvVar {
 	    name: string;
+	    value: string;
 	    isSet: boolean;
 	    required: boolean;
+	    sensitive: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new EnvVar(source);
@@ -56,8 +58,10 @@ export namespace model {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
+	        this.value = source["value"];
 	        this.isSet = source["isSet"];
 	        this.required = source["required"];
+	        this.sensitive = source["sensitive"];
 	    }
 	}
 	export class EnvStatus {
@@ -65,6 +69,7 @@ export namespace model {
 	    hasExample: boolean;
 	    requiredVars: EnvVar[];
 	    optionalVars: EnvVar[];
+	    customVars: EnvVar[];
 	
 	    static createFrom(source: any = {}) {
 	        return new EnvStatus(source);
@@ -76,6 +81,7 @@ export namespace model {
 	        this.hasExample = source["hasExample"];
 	        this.requiredVars = this.convertValues(source["requiredVars"], EnvVar);
 	        this.optionalVars = this.convertValues(source["optionalVars"], EnvVar);
+	        this.customVars = this.convertValues(source["customVars"], EnvVar);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

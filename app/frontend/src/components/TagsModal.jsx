@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Plus, Tag } from 'lucide-react';
 import { projects } from '../lib/wails';
 
@@ -10,6 +10,21 @@ export function TagsModal({ projectName, onClose }) {
   const [tagMessage, setTagMessage] = useState('');
   const [push, setPush] = useState(false);
   const [error, setError] = useState('');
+  const [isClosing, setIsClosing] = useState(false);
+  const dialogRef = useRef(null);
+
+  const handleClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+  }, [isClosing]);
+
+  const handleAnimationEnd = useCallback(
+    (e) => {
+      if (e.target !== dialogRef.current || e.animationName !== 'scale-down') return;
+      onClose();
+    },
+    [onClose]
+  );
 
   useEffect(() => {
     if (!projectName || !window.go) {
@@ -54,9 +69,20 @@ export function TagsModal({ projectName, onClose }) {
   };
 
   return (
-    <div className="modal tags-modal" role="dialog" aria-modal="true" onClick={onClose}>
+    <div
+      className={`modal tags-modal${isClosing ? ' modal--closing' : ''}`}
+      role="dialog"
+      aria-modal="true"
+      onClick={handleClose}
+    >
       <div className="modal__backdrop" aria-hidden />
-      <div className="modal__dialog tags-modal__dialog" style={{ maxWidth: '30rem' }} onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="modal__dialog tags-modal__dialog"
+        style={{ maxWidth: '30rem' }}
+        onClick={(e) => e.stopPropagation()}
+        onAnimationEnd={handleAnimationEnd}
+      >
         <div className="modal__header">
           <h3 className="modal__title tags-modal__title">
             <span className="tags-modal__title-icon">
@@ -64,7 +90,7 @@ export function TagsModal({ projectName, onClose }) {
             </span>
             Tags — {projectName}
           </h3>
-          <button type="button" onClick={onClose} className="modal__close" aria-label="Close">
+          <button type="button" onClick={handleClose} className="modal__close" aria-label="Close">
             <X size={18} />
           </button>
         </div>

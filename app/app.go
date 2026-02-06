@@ -18,6 +18,8 @@ import (
 	"github.com/wabisaby/devkit-dashboard/internal/git"
 	"github.com/wabisaby/devkit-dashboard/internal/model"
 	"github.com/wabisaby/devkit-dashboard/internal/service"
+	"github.com/wailsapp/wails/v2/pkg/menu"
+	"github.com/wailsapp/wails/v2/pkg/menu/keys"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -81,6 +83,20 @@ func (a *App) Startup(ctx context.Context) {
 			"line": line,
 		})
 	})
+
+	// Application menu: View > Toggle Sidebar (Cmd+B / Ctrl+B) so the shortcut works on macOS
+	appMenu := menu.NewMenu()
+	if goruntime.GOOS == "darwin" {
+		appMenu.Append(menu.AppMenu())
+	}
+	viewMenu := appMenu.AddSubmenu("View")
+	viewMenu.AddText("Toggle Sidebar", keys.CmdOrCtrl("b"), func(_ *menu.CallbackData) {
+		runtime.EventsEmit(a.ctx, "devkit:toggle-sidebar", nil)
+	})
+	if goruntime.GOOS == "darwin" {
+		appMenu.Append(menu.EditMenu())
+	}
+	runtime.MenuSetApplicationMenu(ctx, appMenu)
 }
 
 // Shutdown is called when the app is closing
@@ -1277,6 +1293,22 @@ func (a *App) ValidateEnv() (map[string]interface{}, error) {
 		"valid":   true,
 		"missing": []string{},
 	}, nil
+}
+
+// UpdateEnvVar updates or adds an environment variable in the .env file
+func (a *App) UpdateEnvVar(name, value string) error {
+	if err := a.envSvc.UpdateVar(name, value); err != nil {
+		return fmt.Errorf("failed to update env var: %w", err)
+	}
+	return nil
+}
+
+// DeleteEnvVar removes an environment variable from the .env file
+func (a *App) DeleteEnvVar(name string) error {
+	if err := a.envSvc.DeleteVar(name); err != nil {
+		return fmt.Errorf("failed to delete env var: %w", err)
+	}
+	return nil
 }
 
 // ====================

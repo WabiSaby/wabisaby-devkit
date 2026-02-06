@@ -44,13 +44,29 @@ export function DependencyGraph({ projectName, onClose }) {
 
     const fetchDeps = useCallback(() => setRetryCount((c) => c + 1), []);
 
+    const [isClosing, setIsClosing] = useState(false);
+    const dialogRef = useRef(null);
+
+    const handleClose = useCallback(() => {
+        if (isClosing) return;
+        setIsClosing(true);
+    }, [isClosing]);
+
+    const handleAnimationEnd = useCallback(
+        (e) => {
+            if (e.target !== dialogRef.current || e.animationName !== 'scale-down') return;
+            onClose();
+        },
+        [onClose]
+    );
+
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape') handleClose();
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onClose]);
+    }, [handleClose]);
 
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
@@ -151,11 +167,16 @@ export function DependencyGraph({ projectName, onClose }) {
     const centerY = Math.min(120, dimensions.height / 4) + translate.y;
 
     return (
-        <div className="modal" onClick={onClose}>
+        <div
+            className={`modal${isClosing ? ' modal--closing' : ''}`}
+            onClick={handleClose}
+        >
             <div className="modal__backdrop" />
             <div
+                ref={dialogRef}
                 className="modal__dialog modal--fullscreen dependency-graph-modal"
                 onClick={(e) => e.stopPropagation()}
+                onAnimationEnd={handleAnimationEnd}
                 style={{ display: 'flex', flexDirection: 'column' }}
             >
                 <div className="modal__header">
@@ -169,7 +190,7 @@ export function DependencyGraph({ projectName, onClose }) {
                             <span className="badge badge--muted">{data.length} deps</span>
                         )}
                     </div>
-                    <button type="button" className="modal__close" onClick={onClose} aria-label="Close">
+                    <button type="button" className="modal__close" onClick={handleClose} aria-label="Close">
                         <X size={18} />
                     </button>
                 </div>
