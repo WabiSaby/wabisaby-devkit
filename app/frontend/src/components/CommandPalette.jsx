@@ -1,18 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import Fuse from 'fuse.js';
 import { Search, ChevronRight, CornerDownLeft, ArrowUp, ArrowDown } from 'lucide-react';
 import { ALL_COMMANDS, getCategories } from '../lib/commands';
-
-const FUSE_OPTIONS = {
-  keys: [
-    { name: 'label', weight: 0.5 },
-    { name: 'category', weight: 0.2 },
-    { name: 'keywords', weight: 0.3 },
-  ],
-  threshold: 0.4,
-  ignoreLocation: true,
-  includeScore: true,
-};
+import { CommandSearchEngine, createParamSearcher } from '../lib/commandSearch';
 
 export function CommandPalette({ open, onClose, ctx }) {
   const [query, setQuery] = useState('');
@@ -27,49 +16,67 @@ export function CommandPalette({ open, onClose, ctx }) {
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
-  // Fuse instance for commands
-  const fuse = useMemo(() => new Fuse(ALL_COMMANDS, FUSE_OPTIONS), []);
+  // Intent-aware search engine for commands (built once)
+  const engine = useMemo(() => new CommandSearchEngine(ALL_COMMANDS), []);
 
-  // Fuse instance for params (when in param mode)
-  const paramFuse = useMemo(() => {
+  // Lighter search function for params (rebuilt when params change)
+  const paramSearcher = useMemo(() => {
     if (!paramMode?.params?.length) return null;
-    return new Fuse(paramMode.params, {
-      keys: ['label', 'description'],
-      threshold: 0.4,
-      ignoreLocation: true,
-      includeScore: true,
-    });
+    return createParamSearcher(paramMode.params);
   }, [paramMode]);
 
   // ── Filtered results ────────────────────────────────────────────────────
 
-  const filteredCommands = useMemo(() => {
-    if (!query.trim()) return ALL_COMMANDS;
-    return fuse.search(query).map((r) => r.item);
-  }, [query, fuse]);
+  const filteredCommands = useMemo(
+    () => engine.search(query),
+    [query, engine],
+  );
 
   const filteredParams = useMemo(() => {
     if (!paramMode?.params) return [];
-    if (!paramQuery.trim()) return paramMode.params;
-    if (!paramFuse) return paramMode.params;
-    return paramFuse.search(paramQuery).map((r) => r.item);
-  }, [paramQuery, paramMode, paramFuse]);
+    if (!paramSearcher) return paramMode.params;
+    return paramSearcher(paramQuery);
+  }, [paramQuery, paramMode, paramSearcher]);
 
-  // Group commands by category for display
+  // Group commands by category for display.
+  // When there's an active query, categories are ordered by the relevance
+  // of their best-matching command (most relevant category first).
+  // When there's no query, the fixed registration order is preserved.
   const groupedCommands = useMemo(() => {
-    const categories = getCategories();
+    if (!query.trim()) {
+      // No search: fixed category order
+      const categories = getCategories();
+      const groups = [];
+      let flatIndex = 0;
+      for (const cat of categories) {
+        const items = filteredCommands.filter((c) => c.category === cat);
+        if (items.length === 0) continue;
+        groups.push({
+          category: cat,
+          items: items.map((item) => ({ ...item, _flatIndex: flatIndex++ })),
+        });
+      }
+      return { groups, total: flatIndex };
+    }
+
+    // With search: order categories by relevance of their best match.
+    // filteredCommands is already sorted by relevance from the engine,
+    // so the first category encountered has the highest-scoring command.
+    const catMap = new Map();
+    for (const cmd of filteredCommands) {
+      if (!catMap.has(cmd.category)) catMap.set(cmd.category, []);
+      catMap.get(cmd.category).push(cmd);
+    }
     const groups = [];
     let flatIndex = 0;
-    for (const cat of categories) {
-      const items = filteredCommands.filter((c) => c.category === cat);
-      if (items.length === 0) continue;
+    for (const [cat, items] of catMap) {
       groups.push({
         category: cat,
         items: items.map((item) => ({ ...item, _flatIndex: flatIndex++ })),
       });
     }
     return { groups, total: flatIndex };
-  }, [filteredCommands]);
+  }, [filteredCommands, query]);
 
   // ── Reset on open/close ─────────────────────────────────────────────────
 
