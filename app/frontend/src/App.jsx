@@ -11,6 +11,7 @@ import { SettingsView } from './views/SettingsView';
 import { LandingView } from './views/LandingView';
 import { TopBar } from './components/TopBar';
 import { CommandPalette } from './components/CommandPalette';
+import { useToast } from './hooks/useToast';
 import * as api from './lib/wails';
 import { events } from './lib/wails';
 
@@ -38,12 +39,15 @@ function App() {
     setSidebarOpen((prev) => !prev);
   }, []);
 
+  const toast = useToast();
+
   // Command palette context – passed to every command action
   const paletteCtx = useMemo(() => ({
     navigate: handleNavigate,
     toggleSidebar,
     api,
-  }), [handleNavigate, toggleSidebar]);
+    toast,
+  }), [handleNavigate, toggleSidebar, toast]);
 
   // Cmd+B is handled by the native app menu (View > Toggle Sidebar); listen for the event from Go
   useEffect(() => {

@@ -1,140 +1,235 @@
+<div align="center">
+
 # WabiSaby DevKit
 
-**Meta-repository and desktop app for WabiSaby platform development.** The DevKit app (built with [Wails](https://wails.io)) lets you manage WabiSaby projects, run services, and work with the local stack—either as a standalone tool or from this repo with all projects as git submodules.
+**The all-in-one desktop companion for WabiSaby platform development.**
+
+Manage projects, orchestrate services, stream logs, and control your entire local stack — all from a single app.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.22-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![Wails](https://img.shields.io/badge/Wails-v2-red?logo=webassembly&logoColor=white)](https://wails.io)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)]()
+
+<br />
 
 ![DevKit app screenshot](docs/assets/screenshot.png)
 
+</div>
+
+<br />
+
 ## Features
 
-- **Projects** — Add, clone, and manage WabiSaby projects (core, protos, plugin SDK, plugins); start/stop and stream logs.
-- **Infrastructure** — View and manage Docker services (Postgres, Redis, MinIO, Vault, pgAdmin).
-- **Services** — Run and monitor WabiSaby backend services from the app.
-- **Activity** — Live activity and logs.
-- **Settings** — Configure projects directory and app preferences.
+### Project Management
 
-## Repository structure
+Clone, build, test, and monitor all WabiSaby repositories from a unified dashboard. See git status at a glance, manage branches and tags, view dependency graphs, and open any project in your editor with one click.
 
-```
-WabiSaby-DevKit/
-├── .gitmodules              # Submodule configuration
-├── LICENSE
-├── README.md
-├── Makefile                 # Repo-level commands (app, docker, cross-project)
-├── app/                     # DevKit desktop app (Wails + Go + React)
-│   ├── frontend/            # UI (Vite, React, SCSS)
-│   ├── internal/            # App logic (config, git, services)
-│   └── main.go
-├── docs/
-│   └── assets/              # Screenshots and docs assets
-├── projects/                # Git submodules
-│   ├── wabisaby-core/       # Main Go backend
-│   ├── wabisaby-protos/     # Protocol buffer definitions
-│   ├── wabisaby-plugin-sdk-go/
-│   └── wabisaby-plugins/
-├── scripts/                 # Cross-project scripts (test, build, format, submodules)
-└── docker/                  # Docker Compose for local services
-```
+<div align="center">
 
-## Two ways to use DevKit
+![Project Management](docs/assets/gifs/projects.gif)
 
-### 1. Using the DevKit app (end users)
+</div>
 
-Install or build the **DevKit desktop app** and use it to manage your WabiSaby projects and services. You choose where projects live (e.g. a folder of clones); you do **not** need to clone this meta-repo.
+---
+
+### Infrastructure Control
+
+Start and stop Docker services — Postgres, Redis, MinIO, Vault, Keycloak, pgAdmin — individually or all at once. Stream container logs in real-time and jump to service UIs directly from the app.
+
+<div align="center">
+
+![Infrastructure Control](docs/assets/gifs/infrastructure.gif)
+
+</div>
+
+---
+
+### Backend Services
+
+Run, monitor, and health-check WabiSaby backend services (API, WebSocket, Mesh, Plugins). Group-start entire service sets, stream live logs, and manage database migrations — all without leaving the app.
+
+<div align="center">
+
+![Backend Services](docs/assets/gifs/backend-services.gif)
+
+</div>
+
+---
+
+### Command Palette
+
+Hit `⌘K` / `Ctrl+K` to open the command palette. Fuzzy-search through every action in the app — start a service, open a project, toggle settings — without touching the mouse.
+
+<div align="center">
+
+![Command Palette](docs/assets/gifs/command-palette.gif)
+
+</div>
+
+---
+
+### Live Activity Feed
+
+A real-time activity stream that captures everything happening across projects and services. Filter, search, and trace issues as they happen.
+
+<div align="center">
+
+![Activity Feed](docs/assets/gifs/activity.gif)
+
+</div>
+
+---
+
+### Settings & Environment
+
+Configure project paths, validate prerequisites (Go, Node, Docker, Wails), manage environment variables with sensitive-value masking, and keep submodules in sync.
+
+<div align="center">
+
+![Settings](docs/assets/gifs/settings.gif)
+
+</div>
+
+---
+
+<br />
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Desktop framework** | [Wails v2](https://wails.io) — Go + WebView |
+| **Backend** | Go 1.22 |
+| **Frontend** | React 19, Vite 7, SCSS |
+| **Animations** | Framer Motion |
+| **Icons** | Lucide React |
+| **Infrastructure** | Docker Compose (Postgres 16, Redis 7, MinIO, Vault, Keycloak, pgAdmin) |
+
+<br />
+
+## Two Ways to Use DevKit
+
+### As an end user
+
+Install or build the **DevKit desktop app** and use it to manage your WabiSaby projects and services. You choose where projects live; you do **not** need to clone this meta-repo.
 
 - **Build from source:** see [Building the app](#building-the-app).
-- Projects and config are stored in app data, or a path you set via **Settings** (e.g. `WABISABY_PROJECTS_DIR`).
+- Projects and config are stored in app data, or a path you set via **Settings**.
 
-### 2. Developing DevKit or the platform (contributors)
+### As a contributor
 
-Clone this repo and work with all projects in one tree. Submodules live under `projects/`. Use the root Makefile and scripts to run the app, run tests/builds across projects, and manage submodules.
+Clone this repo and work with all projects in one tree. Submodules live under `projects/`. Use the root Makefile and scripts to run the app, run tests and builds across projects, and manage submodules.
+
+<br />
 
 ## Prerequisites
 
-- **Go** 1.22.x (toolchain go1.22.4 is used for Wails; see `app/go.mod`).
-- **Node.js** and **npm** (for frontend dev; required for `make start`).
-- **Wails v2** — install from [wails.io](https://wails.io/docs/gettingstarted/installation).
-- **Docker** (optional) — for local Postgres, Redis, MinIO, Vault, pgAdmin.
-- **Git** — for cloning and submodules.
+- **Go** 1.22+ &ensp;·&ensp; **Node.js** + **npm** &ensp;·&ensp; **Git**
+- [**Wails v2**](https://wails.io/docs/gettingstarted/installation) — desktop framework
+- **Docker** (optional) — for local infrastructure services
 
-## Quick start (contributors)
+<br />
+
+## Quick Start
 
 ```bash
-git clone <devkit-repo-url> && cd WabiSaby-DevKit
+# Clone with submodules
+git clone https://github.com/WabiSaby/wabisaby-devkit.git && cd wabisaby-devkit
 git submodule update --init --recursive
-make setup    # optional: check deps, init submodules, go mod download
-make start    # run DevKit app in dev mode (Wails + Vite)
+
+# Setup and run
+make setup    # check deps, init submodules, go mod download
+make start    # run DevKit app in dev mode (Wails + Vite hot-reload)
 ```
 
-To point the app at this repo’s `projects/` folder, set `WABISABY_DEVKIT_ROOT` to the DevKit repo root (and optionally `WABISABY_PROJECTS_DIR` to `projects`).
+> **Tip:** To point the app at the repo's `projects/` folder, set `WABISABY_DEVKIT_ROOT` to the repo root directory.
+
+<br />
 
 ## Commands
 
 | Command | Description |
-|--------|-------------|
-| `make start` | Run DevKit app (Wails dev mode, live reload) |
+|---------|-------------|
+| `make start` | Run DevKit app in dev mode (live reload) |
 | `make app-build` | Build DevKit desktop binary |
-| `make status` | Submodule status |
+| `make status` | Show submodule status |
 | `make update` | Update all submodules to latest |
 | `make sync` | Record submodule commits in DevKit |
-| `make test` | Run tests in all projects |
+| `make test` | Run tests across all projects |
 | `make build` | Build all projects |
-| `make format` | Format code in all projects |
+| `make format` | Format code across all projects |
 | `make lint` | Lint all projects |
-| `make docker-up` | Start Docker services |
-| `make docker-down` | Stop Docker services |
+| `make docker-up` | Start Docker infrastructure services |
+| `make docker-down` | Stop Docker infrastructure services |
 | `make docker-status` | Show Docker service status |
 | `make clean` | Remove build artifacts |
 
-## Building the app
+<br />
 
-From the repo root:
+## Building the App
 
 ```bash
 make app-build
-# or
-make -C app build
+# → Binary output: app/build/bin/ (platform-specific)
 ```
 
-The binary is produced under `app/build/bin/` (platform-specific). For live-reload development, use `make start` (runs `make -C app dev`).
+For live-reload development, use `make start` instead.
 
-### Dev mode: WebSocket / "hostname could not be found"
+### Dev mode: WebSocket hostname
 
-When running `make start` (Wails dev mode), the frontend connects to the Go backend over a WebSocket. If you see:
+When running in dev mode, the frontend connects to the Go backend over WebSocket. If you see a `wails.localhost` hostname error, add this to your hosts file:
 
-```text
-WebSocket connection to 'ws://wails.localhost:34115/...' failed: A server with the specified hostname could not be found.
+```bash
+# macOS / Linux
+sudo sh -c 'echo "127.0.0.1 wails.localhost" >> /etc/hosts'
 ```
 
-then **Activity and backend events will not work** until the hostname resolves. Add this line to your hosts file:
-
-- **macOS/Linux:** `sudo sh -c 'echo "127.0.0.1 wails.localhost" >> /etc/hosts'`
-- **Windows:** Add `127.0.0.1 wails.localhost` to `C:\Windows\System32\drivers\etc\hosts` (as Administrator).
+```powershell
+# Windows (run as Administrator)
+# Add "127.0.0.1 wails.localhost" to C:\Windows\System32\drivers\etc\hosts
+```
 
 Restart the DevKit app after changing hosts.
 
-## Paths and submodules
+<br />
 
-- Submodules live under **`projects/<name>`** (see `.gitmodules`). Scripts assume this layout.
-- Projects like `wabisaby-core` use `go.mod` replace directives that assume the DevKit layout when developing from this repo.
-- To use this repo’s projects in the app: set `WABISABY_DEVKIT_ROOT` to the DevKit repo root and, if needed, `WABISABY_PROJECTS_DIR` to `projects`.
+## Repository Structure
 
-## Docker services
-
-Local development stack: **Postgres**, **Redis**, **MinIO**, **Vault**, **pgAdmin**. Default credentials are for **local use only**; do not use in production.
-
-```bash
-make docker-up
-make docker-status
-make docker-down
 ```
+WabiSaby-DevKit/
+├── app/                     # DevKit desktop app (Wails + Go + React)
+│   ├── frontend/            #   UI — Vite, React, SCSS
+│   ├── internal/            #   Backend logic — config, git, services
+│   └── main.go              #   Wails entry point
+├── projects/                # Git submodules
+│   ├── wabisaby-core/       #   Main Go backend
+│   ├── wabisaby-protos/     #   Protocol buffer definitions
+│   ├── wabisaby-plugin-sdk-go/
+│   └── wabisaby-plugins/
+├── docker/                  # Docker Compose for local services
+├── scripts/                 # Cross-project scripts (test, build, format)
+├── docs/                    # Documentation and assets
+├── Makefile                 # Top-level commands
+└── .gitmodules              # Submodule configuration
+```
+
+<br />
 
 ## Contributing
 
-1. Make changes in the right project under `projects/` (or in `app/` for the DevKit app).
+1. Make changes in the appropriate project under `projects/` (or in `app/` for the DevKit app itself).
 2. Commit and push in the individual project repo.
-3. If you changed a submodule, update DevKit to point at the new commit:  
-   `git add projects/<name>` then commit in this repo.
+3. If you changed a submodule, update DevKit to point at the new commit:
+
+```bash
+git add projects/<name>
+git commit -m "chore: update <name> submodule"
+```
+
+<br />
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE) for details.

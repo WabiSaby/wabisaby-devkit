@@ -126,16 +126,44 @@ export function CommandPalette({ open, onClose, ctx }) {
         return;
       }
 
+      // Determine the actual command definition and param id
+      const cmdDef = paramMode ? paramMode.command : command;
+      const paramId = paramMode ? command.id : null;
+
       handleClose();
+
+      // Resolve feedback messages for this command
+      const fb = cmdDef.feedback
+        ? cmdDef.feedback(paramId)
+        : null;
+
+      if (fb?.pending && ctx.toast) {
+        ctx.toast.info(fb.pending);
+      }
+
       try {
         if (paramMode) {
-          // We're selecting a parameter
-          await paramMode.command.action(ctx, command.id);
+          const result = await paramMode.command.action(ctx, command.id);
+          // Check for { success: false } pattern from callForSuccess wrapper
+          if (result && result.success === false) {
+            const errMsg = fb?.error || result.message || 'Command failed';
+            if (ctx.toast) ctx.toast.error(errMsg);
+          } else if (fb?.success && ctx.toast) {
+            ctx.toast.success(fb.success);
+          }
         } else {
-          await command.action(ctx);
+          const result = await command.action(ctx);
+          if (result && result.success === false) {
+            const errMsg = fb?.error || result.message || 'Command failed';
+            if (ctx.toast) ctx.toast.error(errMsg);
+          } else if (fb?.success && ctx.toast) {
+            ctx.toast.success(fb.success);
+          }
         }
       } catch (err) {
         console.error('Command palette action error:', err);
+        const errMsg = fb?.error || err?.message || 'Command failed';
+        if (ctx.toast) ctx.toast.error(errMsg);
       }
     },
     [ctx, handleClose, paramMode]

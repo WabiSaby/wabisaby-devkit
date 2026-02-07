@@ -97,6 +97,7 @@ const projects = [
     category: 'Projects',
     icon: GitBranch,
     keywords: ['clone', 'git', 'download'],
+    feedback: (param) => ({ pending: `Cloning ${param}...`, success: `${param} cloned`, error: `Failed to clone ${param}` }),
     getParams: async (ctx) => {
       const res = await ctx.api.projects.list();
       if (!res.success) return [];
@@ -112,6 +113,7 @@ const projects = [
     category: 'Projects',
     icon: RefreshCw,
     keywords: ['update', 'pull', 'git', 'fetch'],
+    feedback: (param) => ({ pending: `Updating ${param}...`, success: `${param} updated`, error: `Failed to update ${param}` }),
     getParams: async (ctx) => {
       const res = await ctx.api.projects.list();
       if (!res.success) return [];
@@ -127,6 +129,7 @@ const projects = [
     category: 'Projects',
     icon: FolderOpen,
     keywords: ['open', 'editor', 'cursor', 'vscode', 'workspace'],
+    feedback: (param) => ({ pending: `Opening ${param}...`, success: `${param} opened in editor` }),
     getParams: async (ctx) => {
       const res = await ctx.api.projects.list();
       if (!res.success) return [];
@@ -142,6 +145,7 @@ const projects = [
     category: 'Projects',
     icon: Hammer,
     keywords: ['build', 'compile', 'make'],
+    feedback: (param) => ({ pending: `Building ${param}...`, success: `Build started for ${param}` }),
     getParams: async (ctx) => {
       const res = await ctx.api.projects.list();
       if (!res.success) return [];
@@ -157,6 +161,7 @@ const projects = [
     category: 'Projects',
     icon: TestTube,
     keywords: ['test', 'unit', 'integration'],
+    feedback: (param) => ({ pending: `Testing ${param}...`, success: `Tests started for ${param}` }),
     getParams: async (ctx) => {
       const res = await ctx.api.projects.list();
       if (!res.success) return [];
@@ -172,6 +177,7 @@ const projects = [
     category: 'Projects',
     icon: Paintbrush,
     keywords: ['format', 'fmt', 'prettier', 'gofmt'],
+    feedback: (param) => ({ pending: `Formatting ${param}...`, success: `Format started for ${param}` }),
     getParams: async (ctx) => {
       const res = await ctx.api.projects.list();
       if (!res.success) return [];
@@ -187,6 +193,7 @@ const projects = [
     category: 'Projects',
     icon: FileSearch,
     keywords: ['lint', 'check', 'golangci', 'eslint'],
+    feedback: (param) => ({ pending: `Linting ${param}...`, success: `Lint started for ${param}` }),
     getParams: async (ctx) => {
       const res = await ctx.api.projects.list();
       if (!res.success) return [];
@@ -202,6 +209,7 @@ const projects = [
     category: 'Projects',
     icon: Hammer,
     keywords: ['build', 'all', 'bulk'],
+    feedback: () => ({ pending: 'Building all projects...', success: 'Bulk build started' }),
     action: (ctx) => ctx.api.projects.startBulkStream('build'),
   },
   {
@@ -210,6 +218,7 @@ const projects = [
     category: 'Projects',
     icon: TestTube,
     keywords: ['test', 'all', 'bulk'],
+    feedback: () => ({ pending: 'Testing all projects...', success: 'Bulk test started' }),
     action: (ctx) => ctx.api.projects.startBulkStream('test'),
   },
   {
@@ -218,6 +227,7 @@ const projects = [
     category: 'Projects',
     icon: Paintbrush,
     keywords: ['format', 'all', 'bulk'],
+    feedback: () => ({ pending: 'Formatting all projects...', success: 'Bulk format started' }),
     action: (ctx) => ctx.api.projects.startBulkStream('format'),
   },
   {
@@ -226,6 +236,7 @@ const projects = [
     category: 'Projects',
     icon: FileSearch,
     keywords: ['lint', 'all', 'bulk'],
+    feedback: () => ({ pending: 'Linting all projects...', success: 'Bulk lint started' }),
     action: (ctx) => ctx.api.projects.startBulkStream('lint'),
   },
   {
@@ -234,6 +245,7 @@ const projects = [
     category: 'Projects',
     icon: GitBranch,
     keywords: ['sync', 'submodule', 'git', 'refs'],
+    feedback: () => ({ pending: 'Syncing submodules...', success: 'Submodules synced', error: 'Failed to sync submodules' }),
     action: (ctx) => ctx.api.submodule.sync('Sync from command palette'),
   },
   {
@@ -264,6 +276,7 @@ const infrastructure = [
     category: 'Infrastructure',
     icon: Play,
     keywords: ['start', 'docker', 'service', 'container'],
+    feedback: (param) => ({ pending: `Starting ${param}...`, success: `${param} started`, error: `Failed to start ${param}` }),
     getParams: async (ctx) => {
       const list = await ctx.api.services.list();
       return (Array.isArray(list) ? list : []).map((s) => ({
@@ -280,6 +293,7 @@ const infrastructure = [
     category: 'Infrastructure',
     icon: Square,
     keywords: ['stop', 'docker', 'service', 'container'],
+    feedback: (param) => ({ pending: `Stopping ${param}...`, success: `${param} stopped`, error: `Failed to stop ${param}` }),
     getParams: async (ctx) => {
       const list = await ctx.api.services.list();
       return (Array.isArray(list) ? list : []).map((s) => ({
@@ -296,6 +310,7 @@ const infrastructure = [
     category: 'Infrastructure',
     icon: Play,
     keywords: ['start', 'all', 'docker', 'services', 'containers'],
+    feedback: () => ({ pending: 'Starting all services...', success: 'All services started', error: 'Failed to start all services' }),
     action: (ctx) => ctx.api.services.startAll(),
   },
   {
@@ -304,6 +319,7 @@ const infrastructure = [
     category: 'Infrastructure',
     icon: Square,
     keywords: ['stop', 'all', 'docker', 'services', 'containers'],
+    feedback: () => ({ pending: 'Stopping all services...', success: 'All services stopped', error: 'Failed to stop all services' }),
     action: (ctx) => ctx.api.services.stopAll(),
   },
 ];
@@ -317,6 +333,7 @@ const backend = [
     category: 'Backend',
     icon: Play,
     keywords: ['start', 'backend', 'service', 'go', 'api'],
+    feedback: (param) => ({ pending: `Starting ${param}...`, success: `${param} started`, error: `Failed to start ${param}` }),
     getParams: async (ctx) => {
       const list = await ctx.api.backend.list();
       return (Array.isArray(list) ? list : []).map((s) => ({
@@ -333,6 +350,7 @@ const backend = [
     category: 'Backend',
     icon: Square,
     keywords: ['stop', 'backend', 'service', 'go', 'api'],
+    feedback: (param) => ({ pending: `Stopping ${param}...`, success: `${param} stopped`, error: `Failed to stop ${param}` }),
     getParams: async (ctx) => {
       const list = await ctx.api.backend.list();
       return (Array.isArray(list) ? list : []).map((s) => ({
@@ -349,6 +367,7 @@ const backend = [
     category: 'Backend',
     icon: Heart,
     keywords: ['health', 'check', 'probe', 'backend'],
+    feedback: (param) => ({ pending: `Checking health of ${param}...`, success: `${param} is healthy`, error: `${param} health check failed` }),
     getParams: async (ctx) => {
       const list = await ctx.api.backend.list();
       return (Array.isArray(list) ? list : []).map((s) => ({
@@ -365,6 +384,7 @@ const backend = [
     category: 'Backend',
     icon: LayoutGrid,
     keywords: ['start', 'group', 'all', 'backend', 'mesh', 'plugins'],
+    feedback: (param) => ({ pending: `Starting group: ${param}...`, success: `Group ${param} started`, error: `Failed to start group ${param}` }),
     getParams: async () => [
       { id: 'backend', label: 'Backend' },
       { id: 'mesh', label: 'Mesh' },
@@ -378,6 +398,7 @@ const backend = [
     category: 'Backend',
     icon: LayoutGrid,
     keywords: ['stop', 'group', 'all', 'backend', 'mesh', 'plugins'],
+    feedback: (param) => ({ pending: `Stopping group: ${param}...`, success: `Group ${param} stopped`, error: `Failed to stop group ${param}` }),
     getParams: async () => [
       { id: 'backend', label: 'Backend' },
       { id: 'mesh', label: 'Mesh' },
@@ -396,6 +417,7 @@ const migrations = [
     category: 'Migrations',
     icon: ArrowUp,
     keywords: ['migration', 'migrate', 'up', 'apply', 'database'],
+    feedback: () => ({ pending: 'Running migrations up...', success: 'Migrations applied', error: 'Migration failed' }),
     action: (ctx) => ctx.api.migration.runUp(),
   },
   {
@@ -404,6 +426,7 @@ const migrations = [
     category: 'Migrations',
     icon: ArrowDown,
     keywords: ['migration', 'rollback', 'down', 'revert', 'database'],
+    feedback: () => ({ pending: 'Rolling back migration...', success: 'Migration rolled back', error: 'Rollback failed' }),
     action: (ctx) => ctx.api.migration.runDown(),
   },
   {
@@ -427,6 +450,7 @@ const protobuf = [
     category: 'Protobuf',
     icon: FileCode,
     keywords: ['proto', 'protobuf', 'generate', 'grpc', 'make'],
+    feedback: () => ({ pending: 'Generating protobuf code...', success: 'Protobuf generation started' }),
     action: (ctx) => ctx.api.proto.startStream(),
   },
   {
@@ -435,6 +459,7 @@ const protobuf = [
     category: 'Protobuf',
     icon: Search,
     keywords: ['proto', 'protobuf', 'status', 'outdated'],
+    feedback: () => ({ pending: 'Checking proto status...' }),
     action: async (ctx) => {
       const status = await ctx.api.proto.getStatus();
       return status;
@@ -451,6 +476,7 @@ const environment = [
     category: 'Environment',
     icon: Copy,
     keywords: ['env', 'environment', 'copy', 'example', 'dotenv'],
+    feedback: () => ({ pending: 'Copying env.example...', success: 'env.example copied to .env', error: 'Failed to copy env.example' }),
     action: (ctx) => ctx.api.env.copyExample(),
   },
   {
@@ -459,6 +485,7 @@ const environment = [
     category: 'Environment',
     icon: CheckCircle,
     keywords: ['env', 'validate', 'check', 'environment'],
+    feedback: () => ({ pending: 'Validating environment...', success: 'Environment is valid', error: 'Environment validation failed' }),
     action: (ctx) => ctx.api.env.validate(),
   },
   {
