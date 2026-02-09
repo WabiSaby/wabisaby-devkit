@@ -43,7 +43,7 @@ type App struct {
 
 // NewApp creates a new App instance
 func NewApp(cfg *config.Config) *App {
-	processManager := service.NewProcessManager(cfg.WabisabyCorePath)
+	processManager := service.NewProcessManager(cfg.WabisabyCorePath, cfg.ProjectsDir)
 	migrationSvc := service.NewMigrationService(cfg.WabisabyCorePath)
 	envSvc := service.NewEnvService(cfg.WabisabyCorePath)
 	protoSvc := service.NewProtoService(cfg.ProjectsDir)

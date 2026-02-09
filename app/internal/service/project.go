@@ -17,6 +17,7 @@ import (
 // projectRepoURLs maps project names to clone URLs for plain clone (app mode).
 var projectRepoURLs = map[string]string{
 	"wabisaby-core":          "https://github.com/WabiSaby/wabisaby-core.git",
+	"wabisaby-node":          "https://github.com/WabiSaby/wabisaby-node.git",
 	"wabisaby-protos":        "https://github.com/WabiSaby/wabisaby-protos.git",
 	"wabisaby-plugin-sdk-go": "https://github.com/WabiSaby/wabisaby-plugin-sdk-go.git",
 	"wabisaby-plugins":       "https://github.com/WabiSaby/wabisaby-plugins.git",
@@ -89,6 +90,7 @@ func hasProtoFiles(dir string) bool {
 func GetProjects(projectsDir string) ([]model.Project, error) {
 	projects := []model.Project{
 		{Name: "wabisaby-core"},
+		{Name: "wabisaby-node"},
 		{Name: "wabisaby-protos"},
 		{Name: "wabisaby-plugin-sdk-go"},
 		{Name: "wabisaby-plugins"},

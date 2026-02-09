@@ -15,6 +15,7 @@ import { RefreshCw, GitMerge, X } from 'lucide-react';
  */
 const PROJECT_SCOPES = {
     'wabisaby-core':           ['backend', 'infrastructure', 'mesh'],
+    'wabisaby-node':           ['mesh'],
     'wabisaby-protos':         ['backend'],
     'wabisaby-plugin-sdk-go':  ['plugins'],
     'wabisaby-plugins':        ['plugins'],

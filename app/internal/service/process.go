@@ -60,6 +60,7 @@ type ProcessManager struct {
 	mu           sync.RWMutex
 	processes    map[string]*ManagedProcess
 	wabisabyRoot string
+	projectsDir  string
 	onExit       BackendExitCallback
 	onActivityLine ActivityLineCallback
 }
@@ -79,10 +80,11 @@ func (pm *ProcessManager) SetOnActivityLine(cb ActivityLineCallback) {
 }
 
 // NewProcessManager creates a new process manager
-func NewProcessManager(wabisabyRoot string) *ProcessManager {
+func NewProcessManager(wabisabyRoot string, projectsDir string) *ProcessManager {
 	return &ProcessManager{
 		processes:    make(map[string]*ManagedProcess),
 		wabisabyRoot: wabisabyRoot,
+		projectsDir:  projectsDir,
 	}
 }
 
@@ -111,7 +113,12 @@ func (pm *ProcessManager) Start(serviceName string) error {
 
 	// Create command
 	cmd := exec.Command("go", "run", svcConfig.CmdPath)
-	cmd.Dir = pm.wabisabyRoot
+	// Use the service's repo directory if specified, otherwise default to wabisaby-core
+	if svcConfig.RepoName != "" {
+		cmd.Dir = filepath.Join(pm.projectsDir, svcConfig.RepoName)
+	} else {
+		cmd.Dir = pm.wabisabyRoot
+	}
 	// Use GOTOOLCHAIN=auto so the project's go.mod toolchain requirement is respected (e.g. 1.24.4)
 	cmd.Env = append(envForGoRun(), envVars...)
 

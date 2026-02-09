@@ -7,6 +7,7 @@ type BackendServiceConfig struct {
 	Name       string
 	CmdPath    string // e.g., "./cmd/api"
 	Group      string // "backend", "mesh", "plugins"
+	RepoName   string // repo directory under projects/ (empty = wabisaby-core)
 	Port       int
 	HealthPath string // e.g., "/health"
 	DocsPath   string // e.g., "/docs"
@@ -39,11 +40,12 @@ func GetBackendServices() []BackendServiceConfig {
 			Port:    50051,
 		},
 
-		// Node (node.yaml)
+		// Node (separate repo: wabisaby-node)
 		{
-			Name:    "node",
-			CmdPath: "./cmd/node",
-			Group:   "mesh",
+			Name:     "node",
+			CmdPath:  "./cmd/node",
+			Group:    "mesh",
+			RepoName: "wabisaby-node",
 		},
 
 		// Plugin infrastructure
