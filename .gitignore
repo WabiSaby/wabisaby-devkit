@@ -23,6 +23,8 @@ Thumbs.db
 .env.local
 .env.*.local
 
+github_auth.json
+
 # Build artifacts (if any)
 *.exe
 *.dll

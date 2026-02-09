@@ -10,32 +10,43 @@ import (
 type Config struct {
 	DevKitRoot       string
 	ProjectsDir      string
+	AppDataDir       string // Always Application Support; used for auth, never overridden by workspace
 	WabisabyCorePath string
+	GitHubClientID   string
+	GitHubOrg        string
 }
+const defaultGitHubClientID = "Ov23li37D0pETvomgch9"
 
-// defaultDevKitRoot returns the platform-specific app data directory for DevKit.
-func defaultDevKitRoot() (string, error) {
+const appDataDirName = "wabisaby-devkit"
+
+// appDataDir returns the platform-specific Application Support path for DevKit.
+// This is never overridden by workspace detection; use it for auth and user config.
+func appDataDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	dirName := "wabisaby-devkit"
 	switch runtime.GOOS {
 	case "darwin":
-		return filepath.Join(home, "Library", "Application Support", dirName), nil
+		return filepath.Join(home, "Library", "Application Support", appDataDirName), nil
 	case "windows":
 		appData := os.Getenv("APPDATA")
 		if appData == "" {
 			appData = filepath.Join(home, "AppData", "Roaming")
 		}
-		return filepath.Join(appData, dirName), nil
+		return filepath.Join(appData, appDataDirName), nil
 	default:
 		dataHome := os.Getenv("XDG_DATA_HOME")
 		if dataHome == "" {
 			dataHome = filepath.Join(home, ".local", "share")
 		}
-		return filepath.Join(dataHome, dirName), nil
+		return filepath.Join(dataHome, appDataDirName), nil
 	}
+}
+
+// defaultDevKitRoot returns the platform-specific app data directory for DevKit.
+func defaultDevKitRoot() (string, error) {
+	return appDataDir()
 }
 
 // Load loads configuration from environment variables with defaults
@@ -64,8 +75,17 @@ func Load() (*Config, error) {
 		projectsDir = filepath.Join(devkitRoot, "projects")
 	}
 
-	// Ensure devkit root and projects dir exist
+	// AppDataDir is always Application Support; used for auth, never overridden
+	appDataPath, err := appDataDir()
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure directories exist
 	if err := os.MkdirAll(projectsDir, 0755); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(appDataPath, 0755); err != nil {
 		return nil, err
 	}
 
@@ -80,10 +100,23 @@ func Load() (*Config, error) {
 		}
 	}
 
+	// GitHub integration
+	githubClientID := os.Getenv("WABISABY_GITHUB_CLIENT_ID")
+	if githubClientID == "" {
+		githubClientID = defaultGitHubClientID
+	}
+	githubOrg := os.Getenv("WABISABY_GITHUB_ORG")
+	if githubOrg == "" {
+		githubOrg = "WabiSaby"
+	}
+
 	return &Config{
 		DevKitRoot:       devkitRoot,
 		ProjectsDir:      projectsDir,
+		AppDataDir:       appDataPath,
 		WabisabyCorePath: wabisabyCorePath,
+		GitHubClientID:   githubClientID,
+		GitHubOrg:        githubOrg,
 	}, nil
 }
 

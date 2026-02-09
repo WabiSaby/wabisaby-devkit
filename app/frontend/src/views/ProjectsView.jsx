@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { projects as projectsAPI, events, submodule } from '../lib/wails';
 import { ProjectCard } from '../components/ProjectCard';
 import { StreamModal } from '../components/StreamModal';
@@ -6,7 +6,19 @@ import { TagsModal } from '../components/TagsModal';
 import { DependencyGraph } from '../components/DependencyGraph';
 import { Skeleton } from '../components/Skeleton';
 import { EmptyState } from '../components/EmptyState';
+import { usePermissions } from '../context/PermissionsContext';
 import { RefreshCw, GitMerge, X } from 'lucide-react';
+
+/**
+ * Maps project names to the view IDs required to see them.
+ * Projects not listed here are visible to anyone with 'projects' access.
+ */
+const PROJECT_SCOPES = {
+    'wabisaby-core':           ['backend', 'infrastructure', 'mesh'],
+    'wabisaby-protos':         ['backend'],
+    'wabisaby-plugin-sdk-go':  ['plugins'],
+    'wabisaby-plugins':        ['plugins'],
+};
 
 export function ProjectsView() {
     const [data, setData] = useState([]);
@@ -19,6 +31,17 @@ export function ProjectsView() {
     const [submoduleNeedsSync, setSubmoduleNeedsSync] = useState(null);
     const [submoduleSyncing, setSubmoduleSyncing] = useState(false);
     const [submoduleBannerDismissed, setSubmoduleBannerDismissed] = useState(false);
+
+    const { canAccessView } = usePermissions();
+
+    // Filter projects based on team permissions
+    const filteredData = useMemo(() => {
+        return data.filter((project) => {
+            const requiredViews = PROJECT_SCOPES[project.name];
+            if (!requiredViews) return true; // no restriction
+            return requiredViews.some((v) => canAccessView(v));
+        });
+    }, [data, canAccessView]);
 
     const fetchProjects = useCallback(async () => {
         setLoading(true);
@@ -186,17 +209,19 @@ export function ProjectsView() {
                         ))}
                     </div>
                 </div>
-            ) : data.length === 0 ? (
+            ) : filteredData.length === 0 ? (
                 <div className="view__body">
                     <EmptyState
-                        title="No active projects yet"
-                        subtitle="Clone a project into the devkit to see it listed here."
+                        title="No projects available"
+                        subtitle={data.length > 0
+                            ? "Your team permissions don't include access to any projects."
+                            : "Clone a project into the devkit to see it listed here."}
                     />
                 </div>
             ) : (
                 <div className="view__body">
                     <div className="view__grid">
-                        {data.map((p) => (
+                        {filteredData.map((p) => (
                             <ProjectCard key={p.name} project={p} onAction={handleAction} />
                         ))}
                     </div>

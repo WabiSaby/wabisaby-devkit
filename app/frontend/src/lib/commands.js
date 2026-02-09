@@ -16,6 +16,7 @@ const navigation = [
     icon: Home,
     keywords: ['home', 'landing', 'dashboard'],
     aliases: ['main page', 'start screen'],
+    targetView: 'home',
     action: (ctx) => ctx.navigate('home'),
   },
   {
@@ -24,6 +25,7 @@ const navigation = [
     category: 'Navigation',
     icon: Layout,
     keywords: ['projects', 'repos', 'submodules'],
+    targetView: 'projects',
     action: (ctx) => ctx.navigate('projects'),
   },
   {
@@ -32,6 +34,7 @@ const navigation = [
     category: 'Navigation',
     icon: Boxes,
     keywords: ['infrastructure', 'docker', 'services'],
+    targetView: 'infrastructure',
     action: (ctx) => ctx.navigate('infrastructure'),
   },
   {
@@ -40,6 +43,7 @@ const navigation = [
     category: 'Navigation',
     icon: Server,
     keywords: ['backend', 'api', 'go'],
+    targetView: 'backend',
     action: (ctx) => ctx.navigate('backend'),
   },
   {
@@ -48,6 +52,7 @@ const navigation = [
     category: 'Navigation',
     icon: Network,
     keywords: ['mesh', 'network', 'coordinator'],
+    targetView: 'mesh',
     action: (ctx) => ctx.navigate('mesh'),
   },
   {
@@ -56,6 +61,7 @@ const navigation = [
     category: 'Navigation',
     icon: Plug,
     keywords: ['plugins', 'capabilities', 'workers'],
+    targetView: 'plugins',
     action: (ctx) => ctx.navigate('plugins'),
   },
   {
@@ -64,6 +70,7 @@ const navigation = [
     category: 'Navigation',
     icon: Activity,
     keywords: ['activity', 'logs', 'events'],
+    targetView: 'activity',
     action: (ctx) => ctx.navigate('activity'),
   },
   {
@@ -72,6 +79,7 @@ const navigation = [
     category: 'Navigation',
     icon: Settings,
     keywords: ['settings', 'config', 'preferences', 'environment'],
+    targetView: 'settings',
     action: (ctx) => ctx.navigate('settings'),
   },
 ];
@@ -528,14 +536,41 @@ export const ALL_COMMANDS = [
 /**
  * Returns the ordered list of unique category names.
  */
-export function getCategories() {
+export function getCategories(commands = ALL_COMMANDS) {
   const seen = new Set();
   const cats = [];
-  for (const cmd of ALL_COMMANDS) {
+  for (const cmd of commands) {
     if (!seen.has(cmd.category)) {
       seen.add(cmd.category);
       cats.push(cmd.category);
     }
   }
   return cats;
+}
+
+/**
+ * Returns a filtered list of commands based on team permissions.
+ *
+ * @param {object} permissions - { connected, views: string[], commands: string[] }
+ * @returns {object[]} Filtered command list
+ */
+export function getFilteredCommands(permissions) {
+  if (!permissions || !permissions.connected) {
+    // When not connected, only allow "Go to Home" and "Go to Settings" + toggle sidebar
+    return ALL_COMMANDS.filter(
+      (cmd) => cmd.id === 'nav:home' || cmd.id === 'nav:settings' || cmd.id === 'general:toggle-sidebar',
+    );
+  }
+
+  const allowedViews = new Set(permissions.views ?? []);
+  const allowedCategories = new Set(permissions.commands ?? []);
+
+  return ALL_COMMANDS.filter((cmd) => {
+    // Navigation commands: filter by target view
+    if (cmd.targetView) {
+      return allowedViews.has(cmd.targetView);
+    }
+    // Other commands: filter by category
+    return allowedCategories.has(cmd.category);
+  });
 }

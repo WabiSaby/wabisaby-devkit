@@ -38,6 +38,26 @@ export function GetProtoStatus() {
   return window['go']['main']['App']['GetProtoStatus']();
 }
 
+export function GitHubDisconnect() {
+  return window['go']['main']['App']['GitHubDisconnect']();
+}
+
+export function GitHubGetStatus() {
+  return window['go']['main']['App']['GitHubGetStatus']();
+}
+
+export function GitHubPollAuth() {
+  return window['go']['main']['App']['GitHubPollAuth']();
+}
+
+export function GitHubRefreshTeams() {
+  return window['go']['main']['App']['GitHubRefreshTeams']();
+}
+
+export function GitHubStartDeviceFlow() {
+  return window['go']['main']['App']['GitHubStartDeviceFlow']();
+}
+
 export function ListBackendServices() {
   return window['go']['main']['App']['ListBackendServices']();
 }

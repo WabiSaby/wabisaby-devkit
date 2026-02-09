@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Search, ChevronRight, CornerDownLeft, ArrowUp, ArrowDown } from 'lucide-react';
-import { ALL_COMMANDS, getCategories } from '../lib/commands';
+import { getFilteredCommands, getCategories } from '../lib/commands';
 import { CommandSearchEngine, createParamSearcher } from '../lib/commandSearch';
+import { usePermissions } from '../context/PermissionsContext';
 
 export function CommandPalette({ open, onClose, ctx }) {
   const [query, setQuery] = useState('');
@@ -16,8 +17,57 @@ export function CommandPalette({ open, onClose, ctx }) {
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
-  // Intent-aware search engine for commands (built once)
-  const engine = useMemo(() => new CommandSearchEngine(ALL_COMMANDS), []);
+  // Version counter – incremented when dynamic keywords are loaded so that
+  // React re-computes the filtered results with the new context.
+  const [dynamicContextVersion, setDynamicContextVersion] = useState(0);
+
+  const { permissions } = usePermissions();
+
+  // Filtered commands based on team permissions
+  const filteredCommandList = useMemo(
+    () => getFilteredCommands(permissions),
+    [permissions],
+  );
+
+  // Intent-aware search engine for commands (rebuilt when permissions change)
+  const engine = useMemo(() => new CommandSearchEngine(filteredCommandList), [filteredCommandList]);
+
+  // ── Pre-fetch dynamic context (live service / project names) ───────────
+  // When the palette opens, call getParams() for every parameterized command
+  // in parallel and inject the results as dynamic keywords. This makes
+  // queries like "redis" or "wabisaby-core" surface the right commands.
+
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+
+    const fetchDynamicContext = async () => {
+      const paramCommands = filteredCommandList.filter((cmd) => cmd.getParams);
+      const results = await Promise.allSettled(
+        paramCommands.map((cmd) =>
+          cmd.getParams(ctx).then((params) => ({ id: cmd.id, params })),
+        ),
+      );
+
+      if (cancelled) return;
+
+      for (const result of results) {
+        if (result.status !== 'fulfilled') continue;
+        const { id, params } = result.value;
+        if (params?.length) {
+          engine.setDynamicKeywords(id, params.map((p) => p.label));
+        }
+      }
+
+      // Bump version so filteredCommands re-computes with the new context
+      setDynamicContextVersion((v) => v + 1);
+    };
+
+    fetchDynamicContext();
+
+    return () => { cancelled = true; };
+  }, [open, engine, filteredCommandList, ctx]);
 
   // Lighter search function for params (rebuilt when params change)
   const paramSearcher = useMemo(() => {
@@ -29,7 +79,7 @@ export function CommandPalette({ open, onClose, ctx }) {
 
   const filteredCommands = useMemo(
     () => engine.search(query),
-    [query, engine],
+    [query, engine, dynamicContextVersion], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const filteredParams = useMemo(() => {
@@ -45,7 +95,7 @@ export function CommandPalette({ open, onClose, ctx }) {
   const groupedCommands = useMemo(() => {
     if (!query.trim()) {
       // No search: fixed category order
-      const categories = getCategories();
+      const categories = getCategories(filteredCommandList);
       const groups = [];
       let flatIndex = 0;
       for (const cat of categories) {
@@ -76,7 +126,7 @@ export function CommandPalette({ open, onClose, ctx }) {
       });
     }
     return { groups, total: flatIndex };
-  }, [filteredCommands, query]);
+  }, [filteredCommands, filteredCommandList, query]);
 
   // ── Reset on open/close ─────────────────────────────────────────────────
 
@@ -114,7 +164,9 @@ export function CommandPalette({ open, onClose, ctx }) {
   const executeCommand = useCallback(
     async (command) => {
       if (command.getParams && !paramMode) {
-        // Enter param mode
+        // Enter param mode – carry the current query so the matching param
+        // is pre-filtered (e.g., "redis" → Start Service → redis pre-selected)
+        const carryQuery = query;
         setLoadingParams(true);
         try {
           const params = await command.getParams(ctx);
@@ -124,7 +176,7 @@ export function CommandPalette({ open, onClose, ctx }) {
             return;
           }
           setParamMode({ command, params });
-          setParamQuery('');
+          setParamQuery(carryQuery);
           setParamIndex(0);
           setTimeout(() => inputRef.current?.focus(), 50);
         } finally {
@@ -173,7 +225,7 @@ export function CommandPalette({ open, onClose, ctx }) {
         if (ctx.toast) ctx.toast.error(errMsg);
       }
     },
-    [ctx, handleClose, paramMode]
+    [ctx, handleClose, paramMode, query]
   );
 
   // ── Keyboard navigation ─────────────────────────────────────────────────

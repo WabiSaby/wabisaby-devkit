@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { status, prerequisites, submodule, env } from '../lib/wails';
+import { status, prerequisites, submodule, env, github } from '../lib/wails';
+import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
+import { usePermissions } from '../context/PermissionsContext';
 import {
   RefreshCw, CheckCircle, XCircle, GitMerge, X,
-  Settings as SettingsIcon, Layout, Terminal,
+  Settings as SettingsIcon, Layout, Terminal, Github,
   Clock, GitBranch, FolderOpen, Boxes, Server, FileCode, Copy,
-  Eye, EyeOff, Lock, Plus, Trash2, Pencil, Save, AlertTriangle
+  Eye, EyeOff, Lock, Plus, Trash2, Pencil, Save, AlertTriangle,
+  LogOut, Users, Shield, ExternalLink, ClipboardCopy
 } from 'lucide-react';
 
 export function SettingsView({ onBreadcrumbChange }) {
@@ -160,6 +163,69 @@ export function SettingsView({ onBreadcrumbChange }) {
     }
   };
 
+  // --- GitHub connection state ---
+  const { permissions, setPermissions } = usePermissions();
+  const [ghConnecting, setGhConnecting] = useState(false);
+  const [ghDeviceFlow, setGhDeviceFlow] = useState(null); // { userCode, verificationUri }
+  const [ghError, setGhError] = useState(null);
+  const [ghCopied, setGhCopied] = useState(false);
+  const [ghRefreshing, setGhRefreshing] = useState(false);
+
+  const openExternal = (url) => {
+    if (window.runtime?.BrowserOpenURL) {
+      BrowserOpenURL(url);
+      return;
+    }
+    window.open(url, '_blank');
+  };
+
+  const startGitHubConnect = async () => {
+    setGhError(null);
+    setGhConnecting(true);
+    setGhDeviceFlow(null);
+    const { success, data, message } = await github.startDeviceFlow();
+    if (!success) {
+      setGhError(message || 'Failed to start GitHub connection');
+      setGhConnecting(false);
+      return;
+    }
+    setGhDeviceFlow(data);
+    try { openExternal(data.verificationUri); } catch { /* ignore */ }
+    const pollResult = await github.pollAuth();
+    if (pollResult.success) {
+      setPermissions(pollResult.data);
+      setGhDeviceFlow(null);
+    } else {
+      setGhError(pollResult.message || 'GitHub authorisation failed');
+    }
+    setGhConnecting(false);
+  };
+
+  const copyCode = (code) => {
+    navigator.clipboard?.writeText(code);
+    setGhCopied(true);
+    setTimeout(() => setGhCopied(false), 2000);
+  };
+
+  const handleGitHubDisconnect = async () => {
+    const perms = await github.disconnect();
+    setPermissions(perms);
+    setGhDeviceFlow(null);
+    setGhError(null);
+  };
+
+  const handleGitHubRefreshTeams = async () => {
+    setGhRefreshing(true);
+    setGhError(null);
+    const { success, data, message } = await github.refreshTeams();
+    if (success) {
+      setPermissions(data);
+    } else {
+      setGhError(message || 'Failed to refresh teams');
+    }
+    setGhRefreshing(false);
+  };
+
   const maskValue = (value) => value ? '\u2022'.repeat(Math.min(value.length, 24)) : '';
 
   const renderVarGroup = (title, vars, allowDelete = false) => {
@@ -269,12 +335,13 @@ export function SettingsView({ onBreadcrumbChange }) {
 
   const tabs = [
     { id: 'status', label: 'General Status', icon: <SettingsIcon size={16} /> },
+    { id: 'github', label: 'GitHub', icon: <Github size={16} /> },
     { id: 'prereqs', label: 'Prerequisites', icon: <Layout size={16} /> },
     { id: 'env', label: 'Environment', icon: <Terminal size={16} /> },
   ];
 
   useEffect(() => {
-    const labels = { status: 'General Status', prereqs: 'Prerequisites', env: 'Environment' };
+    const labels = { status: 'General Status', github: 'GitHub', prereqs: 'Prerequisites', env: 'Environment' };
     const label = labels[activeTab] ?? null;
     onBreadcrumbChange?.(label);
     return () => onBreadcrumbChange?.(null);
@@ -299,6 +366,7 @@ export function SettingsView({ onBreadcrumbChange }) {
 
   const tabSubtitles = {
     status: 'System health, paths, and runtime at a glance.',
+    github: 'Connect to GitHub for team-based access.',
     prereqs: 'Tools and runtimes required by the devkit.',
     env: 'Environment file and variables.',
   };
@@ -557,6 +625,164 @@ export function SettingsView({ onBreadcrumbChange }) {
                 <div className="card">
                   <div className="card__body">
                     <p className="text-sub">No status information available.</p>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {activeTab === 'github' && (
+            <section className="settings-section settings-github">
+              <div className="card">
+                <div className="card__header">
+                  <h3 className="card__title">GitHub Connection</h3>
+                  <p className="settings-env__intro">
+                    Connect your GitHub account to enable team-based access control.
+                    Features are restricted based on your team membership in the WabiSaby organisation.
+                  </p>
+                </div>
+                <div className="card__body">
+                  {permissions?.connected ? (
+                    <div className="settings-env__status">
+                      <div className="status-indicator status-indicator--lg status-indicator--ready" />
+                      <div className="settings-env__status-text">
+                        <span className="settings-env__status-label">
+                          Connected as <strong>{permissions.username}</strong>
+                        </span>
+                        <span className="settings-env__status-desc">
+                          Teams: {permissions.teams?.length > 0 ? permissions.teams.join(', ') : 'none in WabiSaby'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          className="btn btn--secondary"
+                          onClick={handleGitHubRefreshTeams}
+                          disabled={ghRefreshing}
+                          title="Refresh team memberships"
+                        >
+                          <RefreshCw size={14} className={ghRefreshing ? 'icon-spin' : ''} />
+                          Refresh Teams
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--ghost btn--danger"
+                          onClick={handleGitHubDisconnect}
+                          title="Disconnect GitHub account"
+                        >
+                          <LogOut size={14} />
+                          Disconnect
+                        </button>
+                      </div>
+                    </div>
+                  ) : ghDeviceFlow ? (
+                    <div className="settings-github__device-flow">
+                      <p className="settings-github__instruction">
+                        Enter this code on GitHub to authorise DevKit:
+                      </p>
+                      <div className="settings-github__code-row">
+                        <code className="settings-github__code">{ghDeviceFlow.userCode}</code>
+                        <button
+                          type="button"
+                          className="btn btn--secondary btn--sm"
+                          onClick={() => copyCode(ghDeviceFlow.userCode)}
+                        >
+                          <ClipboardCopy size={14} />
+                          {ghCopied ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn--primary"
+                        onClick={() => openExternal(ghDeviceFlow.verificationUri)}
+                      >
+                        <ExternalLink size={14} />
+                        Open GitHub
+                      </button>
+                      <p className="text-sub" style={{ marginTop: '0.75rem' }}>
+                        Waiting for authorisation...
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="settings-env__status">
+                      <div className="status-indicator status-indicator--lg status-indicator--error" />
+                      <div className="settings-env__status-text">
+                        <span className="settings-env__status-label">Not connected</span>
+                        <span className="settings-env__status-desc">
+                          Sign in with GitHub to unlock team-based features.
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn--primary"
+                        onClick={startGitHubConnect}
+                        disabled={ghConnecting}
+                      >
+                        <Github size={14} />
+                        {ghConnecting ? 'Connecting...' : 'Connect to GitHub'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {ghError && (
+                <div className="banner banner--error" style={{ marginTop: '1rem' }}>
+                  <div className="banner__content">
+                    <AlertTriangle size={16} />
+                    <span>{ghError}</span>
+                  </div>
+                  <button type="button" onClick={() => setGhError(null)} className="btn btn--ghost">
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
+
+              {permissions?.connected && (
+                <div className="card" style={{ marginTop: '1rem' }}>
+                  <div className="card__header">
+                    <h3 className="card__title">Access Summary</h3>
+                  </div>
+                  <div className="card__body">
+                    <div className="status-grid">
+                      <div className="card status-group status-group--col-1">
+                        <div className="status-group__header">
+                          <Users size={18} className="status-group__icon" />
+                          <h4 className="status-group__title">Teams</h4>
+                        </div>
+                        <div className="status-group__body">
+                          {permissions.teams?.length > 0 ? permissions.teams.map((team) => (
+                            <div key={team} className="status-row">
+                              <span className="status-label">{team}</span>
+                              <span className="status-value">
+                                <CheckCircle size={14} style={{ color: 'var(--color-success)' }} />
+                              </span>
+                            </div>
+                          )) : (
+                            <div className="status-row">
+                              <span className="status-label text-sub">No teams in WabiSaby org</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="card status-group status-group--col-2">
+                        <div className="status-group__header">
+                          <Shield size={18} className="status-group__icon" />
+                          <h4 className="status-group__title">Granted Access</h4>
+                        </div>
+                        <div className="status-group__body">
+                          <div className="status-row">
+                            <span className="status-label">Views</span>
+                            <span className="status-value">{permissions.views?.join(', ') || 'none'}</span>
+                          </div>
+                          <div className="status-row">
+                            <span className="status-label">Command groups</span>
+                            <span className="status-value">{permissions.commands?.join(', ') || 'none'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

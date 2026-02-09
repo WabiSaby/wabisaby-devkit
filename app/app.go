@@ -33,6 +33,7 @@ type App struct {
 	migrationSvc     *service.MigrationService
 	envSvc           *service.EnvService
 	protoSvc         *service.ProtoService
+	githubSvc        *service.GitHubService
 	startedAt        time.Time
 
 	// Stream cancellation
@@ -46,6 +47,7 @@ func NewApp(cfg *config.Config) *App {
 	migrationSvc := service.NewMigrationService(cfg.WabisabyCorePath)
 	envSvc := service.NewEnvService(cfg.WabisabyCorePath)
 	protoSvc := service.NewProtoService(cfg.ProjectsDir)
+	githubSvc := service.NewGitHubService(cfg.GitHubClientID, cfg.GitHubOrg, cfg.AppDataDir)
 
 	return &App{
 		devkitRoot:       cfg.DevKitRoot,
@@ -55,6 +57,7 @@ func NewApp(cfg *config.Config) *App {
 		migrationSvc:     migrationSvc,
 		envSvc:           envSvc,
 		protoSvc:         protoSvc,
+		githubSvc:        githubSvc,
 		activeStreams:    make(map[string]context.CancelFunc),
 	}
 }
@@ -1439,4 +1442,35 @@ func (a *App) GetNotices() ([]model.Notice, error) {
 	}
 
 	return notices, nil
+}
+
+// ====================
+// GitHub API
+// ====================
+
+// GitHubStartDeviceFlow initiates the GitHub OAuth Device Flow.
+// Returns the user code and verification URI the frontend should display.
+func (a *App) GitHubStartDeviceFlow() (*service.DeviceFlowResponse, error) {
+	return a.githubSvc.StartDeviceFlow()
+}
+
+// GitHubPollAuth polls GitHub until the user completes the device flow.
+// Blocks until success, expiry, or denial. Returns computed permissions.
+func (a *App) GitHubPollAuth() (*service.Permissions, error) {
+	return a.githubSvc.PollForToken()
+}
+
+// GitHubGetStatus returns the current GitHub auth status and cached permissions.
+func (a *App) GitHubGetStatus() *service.Permissions {
+	return a.githubSvc.GetStatus()
+}
+
+// GitHubDisconnect clears the stored GitHub token.
+func (a *App) GitHubDisconnect() *service.Permissions {
+	return a.githubSvc.Disconnect()
+}
+
+// GitHubRefreshTeams re-fetches team memberships and recomputes permissions.
+func (a *App) GitHubRefreshTeams() (*service.Permissions, error) {
+	return a.githubSvc.RefreshTeams()
 }

@@ -252,3 +252,44 @@ export namespace model {
 
 }
 
+export namespace service {
+	
+	export class DeviceFlowResponse {
+	    userCode: string;
+	    verificationUri: string;
+	    expiresIn: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new DeviceFlowResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.userCode = source["userCode"];
+	        this.verificationUri = source["verificationUri"];
+	        this.expiresIn = source["expiresIn"];
+	    }
+	}
+	export class Permissions {
+	    connected: boolean;
+	    username: string;
+	    teams: string[];
+	    views: string[];
+	    commands: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new Permissions(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connected = source["connected"];
+	        this.username = source["username"];
+	        this.teams = source["teams"];
+	        this.views = source["views"];
+	        this.commands = source["commands"];
+	    }
+	}
+
+}
+

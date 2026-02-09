@@ -11,16 +11,31 @@ import { SettingsView } from './views/SettingsView';
 import { LandingView } from './views/LandingView';
 import { TopBar } from './components/TopBar';
 import { CommandPalette } from './components/CommandPalette';
+import { GitHubAuthModal } from './components/GitHubAuthModal';
 import { useToast } from './hooks/useToast';
+import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
 import * as api from './lib/wails';
 import { events } from './lib/wails';
 
-function App() {
+// Data-driven navigation items. Each entry maps to a sidebar link and a view.
+const NAV_ITEMS = [
+  { viewId: 'projects',        label: 'Projects',              icon: Layout },
+  { viewId: 'infrastructure',  label: 'Infrastructure',        icon: Boxes },
+  { viewId: 'backend',         label: 'Backend',               icon: Server },
+  { viewId: 'mesh',            label: 'WabiSaby Mesh',         icon: Network },
+  { viewId: 'plugins',         label: 'Plugin Infrastructure', icon: Plug },
+  { viewId: 'activity',        label: 'Activity',              icon: Activity },
+];
+
+function AppInner() {
   const [activeView, setActiveView] = useState('home');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [breadcrumbSub, setBreadcrumbSub] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+
+  const { canAccessView, permissions, loading } = usePermissions();
+  const isAuthenticated = permissions?.connected;
 
   useEffect(() => {
     if (typeof window.runtime?.WindowIsFullscreen !== 'function') return;
@@ -31,15 +46,35 @@ function App() {
   }, []);
 
   const handleNavigate = useCallback((view) => {
+    // Guard: redirect to home if user lacks access
+    if (!canAccessView(view)) {
+      setActiveView('home');
+      setBreadcrumbSub(null);
+      return;
+    }
     setActiveView(view);
     setBreadcrumbSub(null);
-  }, []);
+  }, [canAccessView]);
+
+  // Derive effective view: if the current view is no longer accessible, fall back to home.
+  const effectiveView = useMemo(() => {
+    if (activeView !== 'home' && activeView !== 'settings' && !canAccessView(activeView)) {
+      return 'home';
+    }
+    return activeView;
+  }, [activeView, canAccessView]);
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);
   }, []);
 
   const toast = useToast();
+
+  // Filtered nav items based on permissions
+  const visibleNavItems = useMemo(
+    () => NAV_ITEMS.filter((item) => canAccessView(item.viewId)),
+    [canAccessView],
+  );
 
   // Command palette context – passed to every command action
   const paletteCtx = useMemo(() => ({
@@ -69,7 +104,7 @@ function App() {
   }, []);
 
   const renderView = () => {
-    switch (activeView) {
+    switch (effectiveView) {
       case 'home':
         return <LandingView onNavigate={handleNavigate} />;
       case 'projects':
@@ -90,99 +125,93 @@ function App() {
   };
 
   return (
-    <div className={`app ${sidebarOpen ? '' : 'app--sidebar-collapsed'} ${isFullscreen ? 'app--fullscreen' : ''}`}>
+    <div className={`app ${sidebarOpen ? '' : 'app--sidebar-collapsed'} ${isFullscreen ? 'app--fullscreen' : ''} ${!isAuthenticated ? 'app--unauthenticated' : ''}`}>
       <header className="app__titlebar" />
       <div className="app__body">
-        <div className="app__body-row">
-          <aside className="app__sidebar">
-            <div className="app__sidebar-header">
-              <button
-                type="button"
-                className="app__sidebar-brand"
-                onClick={() => handleNavigate('home')}
-                title="Go to Home"
-              >
-                <Layout size={24} style={{ color: 'var(--color-primary)' }} />
-                <span className="app__sidebar-title">DevKit</span>
-              </button>
-              <button
-                type="button"
-                className="btn btn--ghost btn--icon"
-                onClick={() => setSidebarOpen((prev) => !prev)}
-                title={sidebarOpen ? "Collapse Sidebar (⌘B)" : "Expand Sidebar (⌘B)"}
-              >
-                {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
-              </button>
-            </div>
-            <nav className="app__sidebar-nav">
-              <NavItem
-                icon={<Layout size={20} />}
-                label="Projects"
-                active={activeView === 'projects'}
-                onClick={() => setActiveView('projects')}
-              />
-              <NavItem
-                icon={<Boxes size={20} />}
-                label="Infrastructure"
-                active={activeView === 'infrastructure'}
-                onClick={() => setActiveView('infrastructure')}
-              />
-              <NavItem
-                icon={<Server size={20} />}
-                label="Backend"
-                active={activeView === 'backend'}
-                onClick={() => setActiveView('backend')}
-              />
-              <NavItem
-                icon={<Network size={20} />}
-                label="WabiSaby Mesh"
-                active={activeView === 'mesh'}
-                onClick={() => setActiveView('mesh')}
-              />
-              <NavItem
-                icon={<Plug size={20} />}
-                label="Plugin Infrastructure"
-                active={activeView === 'plugins'}
-                onClick={() => setActiveView('plugins')}
-              />
-              <NavItem
-                icon={<Activity size={20} />}
-                label="Activity"
-                active={activeView === 'activity'}
-                onClick={() => setActiveView('activity')}
-              />
-            </nav>
-            <div className="app__sidebar-footer">
-              <NavItem
-                icon={<Settings size={20} />}
-                label="Settings"
-                active={activeView === 'settings'}
-                onClick={() => setActiveView('settings')}
-              />
-            </div>
-          </aside>
+        {/* GitHub Auth Modal - shown only when not authenticated */}
+        <GitHubAuthModal isOpen={!loading && !isAuthenticated} />
 
-          <main className="app__main">
-            <TopBar
-              currentView={activeView}
-              breadcrumbSub={breadcrumbSub}
-              onNavigate={handleNavigate}
-              onOpenPalette={() => setPaletteOpen(true)}
-            />
-            <div className="app__content">
-              {activeView !== 'activity' && renderView()}
-              <div style={{ display: activeView === 'activity' ? 'block' : 'none', height: '100%' }}>
-                <ActivityView />
+        {/* Only show main UI when authenticated */}
+        {!loading && isAuthenticated && (
+          <div className="app__body-row">
+            <aside className="app__sidebar">
+              <div className="app__sidebar-header">
+                <button
+                  type="button"
+                  className="app__sidebar-brand"
+                  onClick={() => handleNavigate('home')}
+                  title="Go to Home"
+                >
+                  <Layout size={24} style={{ color: 'var(--color-primary)' }} />
+                  <span className="app__sidebar-title">DevKit</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--icon"
+                  onClick={() => setSidebarOpen((prev) => !prev)}
+                  title={sidebarOpen ? "Collapse Sidebar (⌘B)" : "Expand Sidebar (⌘B)"}
+                >
+                  {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
+                </button>
               </div>
-            </div>
-          </main>
-        </div>
+              <nav className="app__sidebar-nav">
+                {visibleNavItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavItem
+                      key={item.viewId}
+                      icon={<Icon size={20} />}
+                      label={item.label}
+                      active={effectiveView === item.viewId}
+                      onClick={() => setActiveView(item.viewId)}
+                    />
+                  );
+                })}
+              </nav>
+              <div className="app__sidebar-footer">
+                <NavItem
+                  icon={<Settings size={20} />}
+                  label="Settings"
+                  active={effectiveView === 'settings'}
+                  onClick={() => setActiveView('settings')}
+                />
+              </div>
+            </aside>
 
+            <main className="app__main">
+              <TopBar
+                currentView={effectiveView}
+                breadcrumbSub={breadcrumbSub}
+                onNavigate={handleNavigate}
+                onOpenPalette={() => setPaletteOpen(true)}
+              />
+              <div className="app__content">
+                {effectiveView !== 'activity' && renderView()}
+                {canAccessView('activity') && (
+                  <div style={{ display: effectiveView === 'activity' ? 'block' : 'none', height: '100%' }}>
+                    <ActivityView />
+                  </div>
+                )}
+              </div>
+            </main>
+          </div>
+        )}
+
+        {/* Footer always visible */}
         <footer className="app__statusbar">
           <div className="app__statusbar-left">
             <div className="status-item">
-              <div className="status-indicator status-indicator--ready" />
-              <span>Ready</span>
+              {permissions?.connected ? (
+                <>
+                  <div className="status-indicator status-indicator--ready" />
+                  <span>{permissions.username}</span>
+                </>
+              ) : (
+                <>
+                  <div className="status-indicator status-indicator--error" />
+                  <span>Not connected</span>
+                </>
+              )}
             </div>
             <div className="status-item">v0.1.0</div>
           </div>
@@ -201,12 +230,23 @@ function App() {
         </footer>
       </div>
 
-      <CommandPalette
-        open={paletteOpen}
-        onClose={() => setPaletteOpen(false)}
-        ctx={paletteCtx}
-      />
+      {/* Command palette - only available when authenticated */}
+      {isAuthenticated && (
+        <CommandPalette
+          open={paletteOpen}
+          onClose={() => setPaletteOpen(false)}
+          ctx={paletteCtx}
+        />
+      )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <PermissionsProvider>
+      <AppInner />
+    </PermissionsProvider>
   );
 }
 

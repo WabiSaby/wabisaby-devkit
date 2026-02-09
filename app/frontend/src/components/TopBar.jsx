@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Bell, CheckCircle, XCircle, AlertCircle, ChevronRight, Settings, Boxes, Server, RefreshCw, Search, Command } from 'lucide-react';
-import { notices, submodule, generate } from '../lib/wails';
+import { Bell, CheckCircle, XCircle, AlertCircle, ChevronRight, Settings, Boxes, Server, RefreshCw, Search, Command, User, LogOut } from 'lucide-react';
+import { notices, submodule, generate, github } from '../lib/wails';
+import { usePermissions } from '../context/PermissionsContext';
 
 const VIEW_LABELS = {
   home: 'Home',
@@ -27,7 +28,11 @@ export function TopBar({ currentView, breadcrumbSub, onNavigate, onOpenPalette }
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileVisible, setProfileVisible] = useState(false);
   const dropdownRef = useRef(null);
+  const profileRef = useRef(null);
+  const { permissions } = usePermissions();
 
   const openDropdown = () => {
     setDropdownVisible(true);
@@ -37,6 +42,16 @@ export function TopBar({ currentView, breadcrumbSub, onNavigate, onOpenPalette }
   const closeDropdown = () => {
     setDropdownOpen(false);
     setTimeout(() => setDropdownVisible(false), 200);
+  };
+
+  const openProfile = () => {
+    setProfileVisible(true);
+    setProfileOpen(true);
+  };
+
+  const closeProfile = () => {
+    setProfileOpen(false);
+    setTimeout(() => setProfileVisible(false), 200);
   };
 
   const fetchNotices = useCallback(async () => {
@@ -59,6 +74,9 @@ export function TopBar({ currentView, breadcrumbSub, onNavigate, onOpenPalette }
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         closeDropdown();
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        closeProfile();
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -89,6 +107,13 @@ export function TopBar({ currentView, breadcrumbSub, onNavigate, onOpenPalette }
         setActionLoading(null);
       }
     }
+  };
+
+  const handleGitHubDisconnect = async () => {
+    await github.disconnect();
+    closeProfile();
+    // Trigger a permissions refresh by reloading or navigating home
+    window.location.reload();
   };
 
   const hasNotices = noticesList.length > 0;
@@ -227,6 +252,40 @@ export function TopBar({ currentView, breadcrumbSub, onNavigate, onOpenPalette }
                   </ul>
                 )}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Profile Icon Dropdown */}
+        <div className="topbar__profile" ref={profileRef}>
+          <button
+            type="button"
+            className="topbar__profile-btn"
+            onClick={() => profileOpen ? closeProfile() : openProfile()}
+            title={permissions?.username || 'Profile'}
+          >
+            <User size={18} />
+          </button>
+
+          {profileVisible && (
+            <div className={`topbar__profile-dropdown ${profileOpen ? 'topbar__profile-dropdown--open' : 'topbar__profile-dropdown--closing'}`}>
+              <div className="topbar__profile-header">
+                <div className="topbar__profile-avatar">
+                  <User size={20} />
+                </div>
+                <div className="topbar__profile-info">
+                  <div className="topbar__profile-name">{permissions?.username || 'User'}</div>
+                  <div className="topbar__profile-status">Connected</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="topbar__profile-action btn btn--ghost"
+                onClick={handleGitHubDisconnect}
+              >
+                <LogOut size={14} />
+                <span>Sign Out</span>
+              </button>
             </div>
           )}
         </div>

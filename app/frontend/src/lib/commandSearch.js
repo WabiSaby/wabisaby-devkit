@@ -10,12 +10,20 @@
  *   - Prefix, acronym, and subsequence matching
  *   - Stop word removal for natural language queries
  *
+ * ── Dynamic Context ────────────────────────────────────────────────────────
+ *
+ *   The engine supports runtime keywords via `setDynamicKeywords()`. When the
+ *   palette opens, it pre-fetches live data (service names, project names, etc.)
+ *   and injects them as searchable keywords. This way, typing "redis" surfaces
+ *   "Start Infrastructure Service" because "redis" is a known live service.
+ *
  * ── Extensibility ──────────────────────────────────────────────────────────
  *
  *   To teach the engine new vocabulary:
  *     1. Add verb synonyms to VERB_SYNONYMS
  *     2. Add target synonyms to TARGET_SYNONYMS
  *     3. Add `aliases: [...]` to command definitions in commands.js
+ *     4. Call `engine.setDynamicKeywords(cmdId, [...])` for live data
  *
  *   To add new matching strategies:
  *     1. Add a new scoring constant to SCORES
@@ -222,7 +230,37 @@ export class CommandSearchEngine {
       // Pre-joined for "contains" matching
       labelStr:   labelWords.join(' '),
       keywordStr: keywords.join(' '),
+      // Dynamic keywords are populated at runtime via setDynamicKeywords()
+      // (e.g., actual service names like "redis", "postgres", project names, etc.)
+      dynamicKeywords:    [],
+      dynamicKeywordsStr: '',
     };
+  }
+
+  /**
+   * Inject runtime keywords for a command (e.g., live service / project names).
+   *
+   * Call this after fetching dynamic data so that searches like "redis" or
+   * "wabisaby-core" surface the relevant parameterized commands.
+   *
+   * @param {string} commandId – the command's id (e.g., "infra:start")
+   * @param {string[]} keywords – array of dynamic keyword strings
+   */
+  setDynamicKeywords(commandId, keywords) {
+    const entry = this._index.find((e) => e.cmd.id === commandId);
+    if (!entry) return;
+    entry.dynamicKeywords    = keywords.flatMap((k) => extractWords(k));
+    entry.dynamicKeywordsStr = entry.dynamicKeywords.join(' ');
+  }
+
+  /**
+   * Clear all dynamic keywords (e.g., on palette close or permission change).
+   */
+  clearDynamicKeywords() {
+    for (const entry of this._index) {
+      entry.dynamicKeywords    = [];
+      entry.dynamicKeywordsStr = '';
+    }
   }
 
   /**
@@ -290,6 +328,11 @@ export class CommandSearchEngine {
       best = Math.max(best, SCORES.EXACT_KEYWORD);
     }
 
+    // 2b. Exact match on dynamic keywords (live service/project names)
+    if (idx.dynamicKeywords.length > 0 && idx.dynamicKeywords.includes(token)) {
+      best = Math.max(best, SCORES.EXACT_KEYWORD);
+    }
+
     // 3. Exact match on alias tokens
     if (idx.aliasTokens.length > 0 && idx.aliasTokens.includes(token)) {
       best = Math.max(best, SCORES.EXACT_ALIAS);
@@ -351,6 +394,16 @@ export class CommandSearchEngine {
       }
     }
 
+    // 9b. Prefix match on dynamic keywords
+    if (best < SCORES.PREFIX_KEYWORD && idx.dynamicKeywords.length > 0) {
+      for (const w of idx.dynamicKeywords) {
+        if (isPrefix(token, w)) {
+          best = Math.max(best, SCORES.PREFIX_KEYWORD);
+          break;
+        }
+      }
+    }
+
     // 10. Acronym match (token matches first letters of label)
     if (best < SCORES.ACRONYM && token.length >= 2 && idx.acronym.startsWith(token)) {
       best = Math.max(best, SCORES.ACRONYM);
@@ -358,14 +411,14 @@ export class CommandSearchEngine {
 
     // 11. Contains match (2+ chars for contains within words)
     if (best < SCORES.CONTAINS && token.length >= 2) {
-      if (idx.labelStr.includes(token) || idx.keywordStr.includes(token)) {
+      if (idx.labelStr.includes(token) || idx.keywordStr.includes(token) || idx.dynamicKeywordsStr.includes(token)) {
         best = Math.max(best, SCORES.CONTAINS);
       }
     }
 
     // 12. Subsequence match
     if (best < SCORES.SUBSEQUENCE && token.length >= 2) {
-      const allWords = [...idx.labelWords, ...idx.keywords];
+      const allWords = [...idx.labelWords, ...idx.keywords, ...idx.dynamicKeywords];
       for (const w of allWords) {
         if (isSubsequence(token, w)) {
           best = Math.max(best, SCORES.SUBSEQUENCE);

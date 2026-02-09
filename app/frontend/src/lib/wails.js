@@ -90,6 +90,14 @@ export const submodule = {
     sync: (message) => callForSuccess(getApp()?.SubmoduleSync(message)),
 };
 
+export const github = {
+    startDeviceFlow: () => callForSuccess(getApp()?.GitHubStartDeviceFlow()),
+    pollAuth: () => callForSuccess(getApp()?.GitHubPollAuth()),
+    getStatus: () => getApp()?.GitHubGetStatus() ?? Promise.resolve({ connected: false }),
+    disconnect: () => getApp()?.GitHubDisconnect() ?? Promise.resolve({ connected: false }),
+    refreshTeams: () => callForSuccess(getApp()?.GitHubRefreshTeams()),
+};
+
 export const events = {
     on: (event, cb) => getRuntime()?.EventsOn(event, cb),
     off: (event) => getRuntime()?.EventsOff(event),
