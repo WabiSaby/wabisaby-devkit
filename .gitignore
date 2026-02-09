@@ -25,6 +25,9 @@ Thumbs.db
 
 github_auth.json
 
+./cursor/plans/
+./claude/
+
 # Build artifacts (if any)
 *.exe
 *.dll
