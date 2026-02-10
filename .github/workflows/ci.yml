@@ -1,0 +1,109 @@
+# WabiSaby DevKit - CI
+# Runs on push and pull_request for the app (Go backend + frontend).
+# Optional job runs full make test/lint/format-check with submodules when available.
+
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+env:
+  GO_VERSION: "1.22"
+
+jobs:
+  go-app:
+    name: Go (app)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: app/go.sum
+
+      - name: Build
+        run: go build ./...
+        working-directory: app
+
+      - name: Test
+        run: go test ./...
+        working-directory: app
+
+      - name: Format check
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "The following files need 'go fmt':"
+            echo "$unformatted"
+            exit 1
+          fi
+        working-directory: app
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+          cache-dependency-path: app/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: app/frontend
+
+      - name: Lint
+        run: npm run lint
+        working-directory: app/frontend
+
+      - name: Build
+        run: npm run build
+        working-directory: app/frontend
+
+  # Full repo checks (submodules). Requires submodules to be initialized.
+  # If submodules are private, configure SSH or token and use submodules: recursive.
+  full-check:
+    name: Full repo (make test, lint, format-check)
+    runs-on: ubuntu-latest
+    needs: [go-app, frontend]
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+          golangci-lint --version
+
+      - name: Format check (all projects)
+        run: make format-check
+
+      - name: Lint (all projects)
+        run: make lint
+
+      - name: Test (all projects)
+        run: make test
