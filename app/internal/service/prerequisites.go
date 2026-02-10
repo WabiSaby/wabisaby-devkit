@@ -76,7 +76,7 @@ func firstLine(s string) string {
 var (
 	gitVersionRe    = regexp.MustCompile(`git version (\S+)`)
 	goVersionRe     = regexp.MustCompile(`go version go(\S+)`)
-	nodeVersionRe  = regexp.MustCompile(`v?(\S+)`)
+	nodeVersionRe   = regexp.MustCompile(`v?(\S+)`)
 	dockerVersionRe = regexp.MustCompile(`(\d+\.\d+\.\d+)`)
 )
 

@@ -66,7 +66,7 @@ var everyView = []string{"home", "projects", "infrastructure", "backend", "mesh"
 var everyCommand = []string{"Navigation", "General", "Projects", "Infrastructure", "Backend", "Migrations", "Protobuf", "Environment"}
 
 var teamExtraViews = map[string][]string{
-	"core-devs":  {"infrastructure", "backend", "mesh"},
+	"core-devs":   {"infrastructure", "backend", "mesh"},
 	"plugin-devs": {"plugins"},
 }
 
@@ -458,6 +458,7 @@ func (s *GitHubService) computePermissions() *Permissions {
 		Commands:  commands,
 	}
 }
+
 /* package service
 
 import (

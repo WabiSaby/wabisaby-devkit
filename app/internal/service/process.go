@@ -42,10 +42,10 @@ type ManagedProcess struct {
 	Error     error
 
 	// Log streaming
-	logMu         sync.RWMutex
+	logMu          sync.RWMutex
 	subscribers    map[chan string]struct{}
 	done           chan struct{}
-	lastOutput     []string // last N lines of stdout/stderr for failed services
+	lastOutput     []string          // last N lines of stdout/stderr for failed services
 	onActivityLine func(line string) // optional; called for each line for Activity feed
 }
 
@@ -57,11 +57,11 @@ type ActivityLineCallback func(serviceName string, line string)
 
 // ProcessManager tracks running Go processes
 type ProcessManager struct {
-	mu           sync.RWMutex
-	processes    map[string]*ManagedProcess
-	wabisabyRoot string
-	projectsDir  string
-	onExit       BackendExitCallback
+	mu             sync.RWMutex
+	processes      map[string]*ManagedProcess
+	wabisabyRoot   string
+	projectsDir    string
+	onExit         BackendExitCallback
 	onActivityLine ActivityLineCallback
 }
 
@@ -184,7 +184,7 @@ func (pm *ProcessManager) Start(serviceName string) error {
 
 		// Notify subscribers that logs are done
 		proc.broadcast("[Process exited]")
-		
+
 		// Copy lastOutput and invoke exit callback for Activity (must not hold logMu long)
 		var exitOutput []string
 		proc.logMu.RLock()

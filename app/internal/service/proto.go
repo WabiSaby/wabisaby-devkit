@@ -31,7 +31,7 @@ func (s *ProtoService) GetStatus() (*model.ProtoStatus, error) {
 	if err != nil || !stat.IsDir() {
 		return &model.ProtoStatus{
 			OutOfDate:  false,
-			Message:   "wabisaby-protos not found",
+			Message:    "wabisaby-protos not found",
 			ProtosPath: protosPath,
 		}, nil
 	}
@@ -40,7 +40,7 @@ func (s *ProtoService) GetStatus() (*model.ProtoStatus, error) {
 	if err != nil {
 		return &model.ProtoStatus{
 			OutOfDate:  true,
-			Message:   fmt.Sprintf("Could not read proto sources: %v", err),
+			Message:    fmt.Sprintf("Could not read proto sources: %v", err),
 			ProtosPath: protosPath,
 		}, nil
 	}
@@ -49,7 +49,7 @@ func (s *ProtoService) GetStatus() (*model.ProtoStatus, error) {
 	if maxProtoMtime.IsZero() {
 		return &model.ProtoStatus{
 			OutOfDate:  false,
-			Message:   "No proto sources found",
+			Message:    "No proto sources found",
 			ProtosPath: protosPath,
 		}, nil
 	}
@@ -66,7 +66,7 @@ func (s *ProtoService) GetStatus() (*model.ProtoStatus, error) {
 	if maxGoMtime.IsZero() {
 		return &model.ProtoStatus{
 			OutOfDate:  true,
-			Message:   "Generated code missing; run Generate",
+			Message:    "Generated code missing; run Generate",
 			ProtosPath: protosPath,
 		}, nil
 	}
@@ -74,14 +74,14 @@ func (s *ProtoService) GetStatus() (*model.ProtoStatus, error) {
 	if maxProtoMtime.After(maxGoMtime) {
 		return &model.ProtoStatus{
 			OutOfDate:  true,
-			Message:   "Proto sources newer than generated code",
+			Message:    "Proto sources newer than generated code",
 			ProtosPath: protosPath,
 		}, nil
 	}
 
 	return &model.ProtoStatus{
 		OutOfDate:  false,
-		Message:   "Up to date",
+		Message:    "Up to date",
 		ProtosPath: protosPath,
 	}, nil
 }

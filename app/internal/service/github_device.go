@@ -14,9 +14,9 @@ import (
 
 // GitHubService handles GitHub OAuth Device Flow and team-based permissions.
 type GitHubService struct {
-	clientID   string
-	org        string
-	authDir    string // Application Support dir for github_auth.json; not workspace root
+	clientID string
+	org      string
+	authDir  string // Application Support dir for github_auth.json; not workspace root
 
 	// Device flow state (transient, not persisted)
 	deviceCode string
@@ -66,7 +66,7 @@ var everyView = []string{"home", "projects", "infrastructure", "backend", "mesh"
 var everyCommand = []string{"Navigation", "General", "Projects", "Infrastructure", "Backend", "Migrations", "Protobuf", "Environment"}
 
 var teamExtraViews = map[string][]string{
-	"core-devs":  {"infrastructure", "backend", "mesh"},
+	"core-devs":   {"infrastructure", "backend", "mesh"},
 	"plugin-devs": {"plugins"},
 }
 

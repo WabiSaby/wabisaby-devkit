@@ -10,7 +10,7 @@ type ProtoStatus struct {
 // Notice represents a dashboard notice (sync, proto, migration, env, docker)
 type Notice struct {
 	ID        string `json:"id"`
-	Severity  string `json:"severity"`  // "info", "warn", "error"
+	Severity  string `json:"severity"` // "info", "warn", "error"
 	Message   string `json:"message"`
 	ActionKey string `json:"actionKey,omitempty"` // "sync", "proto", "env", "migration", "docker"
 }

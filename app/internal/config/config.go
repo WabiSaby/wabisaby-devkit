@@ -15,6 +15,7 @@ type Config struct {
 	GitHubClientID   string
 	GitHubOrg        string
 }
+
 const defaultGitHubClientID = "Ov23li37D0pETvomgch9"
 
 const appDataDirName = "wabisaby-devkit"

@@ -4,12 +4,12 @@ import (
 	"embed"
 	"log"
 
+	"github.com/wabisaby/devkit-dashboard/internal/config"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
-	"github.com/wabisaby/devkit-dashboard/internal/config"
 )
 
 //go:embed all:frontend/dist
@@ -27,10 +27,10 @@ func main() {
 
 	// Create application with options
 	err = wails.Run(&options.App{
-		Title:  "DevKit",
-		Width:  1400,
-		Height: 900,
-		MinWidth: 1024,
+		Title:     "DevKit",
+		Width:     1400,
+		Height:    900,
+		MinWidth:  1024,
 		MinHeight: 600,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
