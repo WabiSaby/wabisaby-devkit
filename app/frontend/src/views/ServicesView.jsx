@@ -119,25 +119,6 @@ export function ServicesView({
     }
   };
 
-  const handleGroupAction = async (action, group) => {
-    if (!window.go) return;
-
-    try {
-      if (action === 'start') {
-        toastInfo(`Starting group: ${group}...`);
-        await backend.startGroup(group);
-        toastSuccess(`Group ${group} started`);
-      } else if (action === 'stop') {
-        toastInfo(`Stopping group: ${group}...`);
-        await backend.stopGroup(group);
-        toastSuccess(`Group ${group} stopped`);
-      }
-      fetchBackends();
-    } catch (err) {
-      toastError(`Failed to ${action} group ${group}`);
-    }
-  };
-
   const groupFilter = Array.isArray(filterGroups) && filterGroups.length > 0;
   const visibleBackends = groupFilter
     ? backends.filter((svc) => filterGroups.includes(svc.group))

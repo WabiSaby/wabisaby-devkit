@@ -3,6 +3,7 @@ import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
 const ToastContext = createContext(null);
 
+/* eslint-disable react-refresh/only-export-components -- useToast is a hook, not a component; exported from same module as ToastProvider for convenience */
 export function useToast() {
     const context = useContext(ToastContext);
     if (!context) {
@@ -14,20 +15,23 @@ export function useToast() {
 export function ToastProvider({ children }) {
     const [toasts, setToasts] = useState([]);
 
-    const addToast = useCallback((message, type = 'info', duration = 5000) => {
-        const id = Date.now().toString();
-        setToasts((prev) => [...prev, { id, message, type }]);
-
-        if (duration > 0) {
-            setTimeout(() => {
-                removeToast(id);
-            }, duration);
-        }
-    }, []);
-
     const removeToast = useCallback((id) => {
         setToasts((prev) => prev.filter((toast) => toast.id !== id));
     }, []);
+
+    const addToast = useCallback(
+        (message, type = 'info', duration = 5000) => {
+            const id = Date.now().toString();
+            setToasts((prev) => [...prev, { id, message, type }]);
+
+            if (duration > 0) {
+                setTimeout(() => {
+                    removeToast(id);
+                }, duration);
+            }
+        },
+        [removeToast]
+    );
 
     const success = (msg) => addToast(msg, 'success');
     const error = (msg) => addToast(msg, 'error');

@@ -103,25 +103,6 @@ export function ServicesView() {
     }
   };
 
-  const handleGroupAction = async (action, group) => {
-    if (!window.go) return;
-
-    try {
-      if (action === 'start') {
-        toastInfo(`Starting group: ${group}...`);
-        await backend.startGroup(group);
-        toastSuccess(`Group ${group} started`);
-      } else if (action === 'stop') {
-        toastInfo(`Stopping group: ${group}...`);
-        await backend.stopGroup(group);
-        toastSuccess(`Group ${group} stopped`);
-      }
-      fetchBackends();
-    } catch (err) {
-      toastError(`Failed to ${action} group ${group}`);
-    }
-  };
-
   const groupNames = Object.keys(
     backends.reduce((acc, curr) => {
       const g = curr.group || 'other';
