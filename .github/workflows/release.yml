@@ -8,8 +8,6 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    # Run manually: Actions → Release → Run workflow. Choose "Tag: v0.1.0" in "Use workflow from" to release that tag.
 
 env:
   GO_VERSION: "1.22"
