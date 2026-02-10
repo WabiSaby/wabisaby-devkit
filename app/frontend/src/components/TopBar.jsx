@@ -264,14 +264,22 @@ export function TopBar({ currentView, breadcrumbSub, onNavigate, onOpenPalette }
             onClick={() => profileOpen ? closeProfile() : openProfile()}
             title={permissions?.username || 'Profile'}
           >
-            <User size={18} />
+            {permissions?.avatarUrl ? (
+              <img src={permissions.avatarUrl} alt="" className="topbar__profile-btn-avatar" width={18} height={18} />
+            ) : (
+              <User size={18} />
+            )}
           </button>
 
           {profileVisible && (
             <div className={`topbar__profile-dropdown ${profileOpen ? 'topbar__profile-dropdown--open' : 'topbar__profile-dropdown--closing'}`}>
               <div className="topbar__profile-header">
                 <div className="topbar__profile-avatar">
-                  <User size={20} />
+                  {permissions?.avatarUrl ? (
+                    <img src={permissions.avatarUrl} alt="" className="topbar__profile-avatar-img" width={40} height={40} />
+                  ) : (
+                    <User size={20} />
+                  )}
                 </div>
                 <div className="topbar__profile-info">
                   <div className="topbar__profile-name">{permissions?.username || 'User'}</div>

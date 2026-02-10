@@ -26,6 +26,7 @@ type GitHubService struct {
 	// Auth state
 	accessToken string
 	username    string
+	avatarURL   string
 	teams       []string
 }
 
@@ -40,6 +41,7 @@ type DeviceFlowResponse struct {
 type Permissions struct {
 	Connected bool     `json:"connected"`
 	Username  string   `json:"username"`
+	AvatarURL string   `json:"avatarUrl"`
 	Teams     []string `json:"teams"`
 	Views     []string `json:"views"`
 	Commands  []string `json:"commands"`
@@ -49,6 +51,7 @@ type Permissions struct {
 type storedAuth struct {
 	AccessToken string   `json:"accessToken"`
 	Username    string   `json:"username"`
+	AvatarURL   string   `json:"avatarUrl"`
 	Teams       []string `json:"teams"`
 }
 
@@ -106,6 +109,7 @@ func (s *GitHubService) loadToken() {
 	}
 	s.accessToken = stored.AccessToken
 	s.username = stored.Username
+	s.avatarURL = stored.AvatarURL
 	s.teams = stored.Teams
 }
 
@@ -113,6 +117,7 @@ func (s *GitHubService) saveToken() error {
 	stored := storedAuth{
 		AccessToken: s.accessToken,
 		Username:    s.username,
+		AvatarURL:   s.avatarURL,
 		Teams:       s.teams,
 	}
 	data, err := json.MarshalIndent(stored, "", "  ")
@@ -125,6 +130,7 @@ func (s *GitHubService) saveToken() error {
 func (s *GitHubService) clearToken() error {
 	s.accessToken = ""
 	s.username = ""
+	s.avatarURL = ""
 	s.teams = nil
 	_ = os.Remove(s.authFilePath())
 	return nil
@@ -252,11 +258,12 @@ func (s *GitHubService) PollForToken() (*Permissions, error) {
 			s.accessToken = result.AccessToken
 			s.deviceCode = ""
 
-			username, err := s.fetchUsername()
+			username, avatarURL, err := s.fetchUser()
 			if err != nil {
 				return nil, fmt.Errorf("failed to get GitHub user: %w", err)
 			}
 			s.username = username
+			s.avatarURL = avatarURL
 
 			teams, err := s.fetchTeams()
 			if err != nil {
@@ -285,13 +292,15 @@ func (s *GitHubService) GetStatus() *Permissions {
 	}
 
 	// Quick validation: hit /user to check the token is alive.
-	username, err := s.fetchUsername()
+	username, avatarURL, err := s.fetchUser()
 	if err != nil {
 		// Token invalid/revoked — clear it.
 		s.clearToken()
 		return &Permissions{Connected: false}
 	}
 	s.username = username
+	s.avatarURL = avatarURL
+	_ = s.saveToken()
 
 	return s.computePermissions()
 }
@@ -322,32 +331,34 @@ func (s *GitHubService) RefreshTeams() (*Permissions, error) {
 // GitHub API helpers
 // ──────────────────────────────────────────────────────────────────────────────
 
-func (s *GitHubService) fetchUsername() (string, error) {
+// fetchUser returns the authenticated user's login and avatar URL.
+func (s *GitHubService) fetchUser() (login, avatarURL string, err error) {
 	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+s.accessToken)
 	req.Header.Set("Accept", "application/vnd.github+json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("GitHub API returned %d", resp.StatusCode)
+		return "", "", fmt.Errorf("GitHub API returned %d", resp.StatusCode)
 	}
 
 	body, _ := io.ReadAll(resp.Body)
 	var user struct {
-		Login string `json:"login"`
+		Login     string `json:"login"`
+		AvatarURL string `json:"avatar_url"`
 	}
 	if err := json.Unmarshal(body, &user); err != nil {
-		return "", err
+		return "", "", err
 	}
-	return user.Login, nil
+	return user.Login, user.AvatarURL, nil
 }
 
 func (s *GitHubService) fetchTeams() ([]string, error) {
@@ -412,6 +423,7 @@ func (s *GitHubService) computePermissions() *Permissions {
 			return &Permissions{
 				Connected: true,
 				Username:  s.username,
+				AvatarURL: s.avatarURL,
 				Teams:     s.teams,
 				Views:     everyView,
 				Commands:  everyCommand,
@@ -451,6 +463,7 @@ func (s *GitHubService) computePermissions() *Permissions {
 	return &Permissions{
 		Connected: true,
 		Username:  s.username,
+		AvatarURL: s.avatarURL,
 		Teams:     s.teams,
 		Views:     views,
 		Commands:  commands,

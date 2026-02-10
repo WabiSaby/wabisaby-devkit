@@ -200,6 +200,7 @@ export namespace model {
 	    dirty: boolean;
 	    status: string;
 	    language?: string;
+	    repoUrl?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Project(source);
@@ -213,6 +214,7 @@ export namespace model {
 	        this.dirty = source["dirty"];
 	        this.status = source["status"];
 	        this.language = source["language"];
+	        this.repoUrl = source["repoUrl"];
 	    }
 	}
 	export class ProtoStatus {
@@ -273,6 +275,7 @@ export namespace service {
 	export class Permissions {
 	    connected: boolean;
 	    username: string;
+	    avatarUrl: string;
 	    teams: string[];
 	    views: string[];
 	    commands: string[];
@@ -285,6 +288,7 @@ export namespace service {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.connected = source["connected"];
 	        this.username = source["username"];
+	        this.avatarUrl = source["avatarUrl"];
 	        this.teams = source["teams"];
 	        this.views = source["views"];
 	        this.commands = source["commands"];

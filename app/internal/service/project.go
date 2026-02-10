@@ -99,6 +99,10 @@ func GetProjects(projectsDir string) ([]model.Project, error) {
 	for i := range projects {
 		project := &projects[i]
 		projectDir := filepath.Join(projectsDir, project.Name)
+		// Set GitHub repo URL for known projects (web URL: strip .git from clone URL)
+		if cloneURL, ok := projectRepoURLs[project.Name]; ok {
+			project.RepoURL = strings.TrimSuffix(cloneURL, ".git")
+		}
 
 		// Check if project directory exists
 		if _, err := os.Stat(projectDir); os.IsNotExist(err) {

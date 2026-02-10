@@ -1,5 +1,6 @@
 import React from 'react';
-import { Hammer, FlaskConical, Terminal, ExternalLink, Box, Tag, GitGraph } from 'lucide-react';
+import { Hammer, FlaskConical, Terminal, ExternalLink, Box, Tag, GitGraph, Github } from 'lucide-react';
+import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 
 // GitHub Linguist-style colors per language (glassy, discrete tint)
 const LANGUAGE_COLORS = {
@@ -52,6 +53,22 @@ export function ProjectCard({ project, onAction }) {
                     <ActionButton icon={<Terminal size={14} />} label="Logs" onClick={() => onAction('logs', project)} />
                 </div>
                 <div className="card__actions">
+                    {project.repoUrl && (
+                        <button
+                            type="button"
+                            className="btn btn--ghost btn--sm"
+                            title="View on GitHub"
+                            onClick={() => {
+                                if (window.runtime?.BrowserOpenURL) {
+                                    BrowserOpenURL(project.repoUrl);
+                                } else {
+                                    window.open(project.repoUrl, '_blank', 'noopener,noreferrer');
+                                }
+                            }}
+                        >
+                            <Github size={16} />
+                        </button>
+                    )}
                     <button type="button" onClick={() => onAction('graph', project)} className="btn btn--ghost btn--sm" title="Dependency Graph">
                         <GitGraph size={16} />
                     </button>

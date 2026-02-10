@@ -8,6 +8,7 @@ type Project struct {
 	Dirty    bool   `json:"dirty"`
 	Status   string `json:"status"`
 	Language string `json:"language,omitempty"`
+	RepoURL  string `json:"repoUrl,omitempty"` // GitHub repo URL for the project card link
 }
 
 // Dependency represents a project dependency
