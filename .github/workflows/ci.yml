@@ -1,6 +1,7 @@
 # WabiSaby DevKit - CI
 # Runs on push and pull_request for the app (Go backend + frontend).
-# Optional job runs full make test/lint/format-check with submodules when available.
+# Submodules (projects/*) are not checked out; run make test/lint/format-check locally
+# with submodules, or configure a PAT with repo scope and submodules: recursive if needed.
 
 name: CI
 
@@ -81,40 +82,3 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: app/frontend
-
-  # Full repo checks (submodules). Requires submodules to be initialized.
-  # If submodules are private, configure SSH or token and use submodules: recursive.
-  full-check:
-    name: Full repo (make test, lint, format-check)
-    runs-on: ubuntu-latest
-    needs: [go-app, frontend]
-    steps:
-      - name: Checkout (with submodules)
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "lts/*"
-
-      - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
-          golangci-lint --version
-
-      - name: Format check (all projects)
-        run: make format-check
-
-      - name: Lint (all projects)
-        run: make lint
-
-      - name: Test (all projects)
-        run: make test
