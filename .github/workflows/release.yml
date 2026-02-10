@@ -17,18 +17,17 @@ jobs:
   build:
     strategy:
       fail-fast: false
-    matrix:
-      include:
-        - platform: linux/amd64
-          os: ubuntu-latest
-          artifact_name: DevKit-linux-amd64
-        - platform: windows/amd64
-          os: windows-latest
-          artifact_name: DevKit-windows-amd64
-        - platform: darwin/universal
-          os: macos-latest
-          artifact_name: DevKit-darwin-universal
-
+      matrix:
+        include:
+          - platform: linux/amd64
+            os: ubuntu-latest
+            artifact_name: DevKit-linux-amd64
+          - platform: windows/amd64
+            os: windows-latest
+            artifact_name: DevKit-windows-amd64
+          - platform: darwin/universal
+            os: macos-latest
+            artifact_name: DevKit-darwin-universal
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
