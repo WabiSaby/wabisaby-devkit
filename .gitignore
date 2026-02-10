@@ -61,7 +61,6 @@ app/frontend/dist/
 app/build/
 app/bin/
 *.app
-app/wails.json
 app/*-darwin
 app/*-linux
 app/*-windows

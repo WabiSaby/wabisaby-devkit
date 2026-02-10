@@ -175,6 +175,17 @@ make app-build
 # → Binary output: app/build/bin/ (platform-specific)
 ```
 
+## Releasing
+
+1. **Bump version** (if needed): update `Version` in `app/main.go`, `productVersion` in `app/wails.json`, and `version` in `app/frontend/package.json` to the new release (e.g. `0.1.0`).
+2. **Commit and push** the version changes to `master`/`main`.
+3. **Create and push the tag:**
+   ```bash
+   git tag -a v0.1.0 -m "Release v0.1.0"
+   git push origin v0.1.0
+   ```
+4. **GitHub Actions** will run the [Release workflow](.github/workflows/release.yml): it builds the app for macOS (universal), Linux (amd64), and Windows (amd64), then creates a GitHub Release with the binaries attached.
+
 For live-reload development, use `make start` instead.
 
 ### Dev mode: WebSocket hostname

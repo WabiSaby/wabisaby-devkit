@@ -15,6 +15,9 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+// Version is set for releases (e.g. via -ldflags "-X main.Version=0.1.0").
+var Version = "0.1.0"
+
 func main() {
 	// Load configuration
 	cfg, err := config.Load()
@@ -53,7 +56,7 @@ func main() {
 			Appearance: mac.DefaultAppearance,
 			About: &mac.AboutInfo{
 				Title:   "DevKit",
-				Message: "WabiSaby Development Kit Dashboard",
+				Message: "WabiSaby Development Kit Dashboard\nVersion " + Version,
 			},
 		},
 		Windows: &windows.Options{
