@@ -2834,3 +2834,4 @@ func (s *GitHubService) computePermissions() *Permissions {
 		Commands:  commands,
 	}
 }
+*/
