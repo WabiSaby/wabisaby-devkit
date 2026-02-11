@@ -19,7 +19,16 @@ First release of **WabiSaby DevKit** — the desktop companion for WabiSaby plat
 
 ## Downloads
 
-Attached below: **macOS** (universal), **Linux** (amd64), and **Windows** (amd64). Unzip and run the binary (on macOS, open the `.app` bundle).
+Attached below: **macOS** (universal), **Linux** (amd64), and **Windows** (amd64).
+
+**macOS note:** The app is not code-signed yet, so macOS will show a "cannot be verified" warning. To open it:
+```bash
+# Extract, remove quarantine flag, then open
+tar xzf DevKit-darwin-universal.tar.gz
+xattr -cr DevKit.app
+open DevKit.app
+```
+Or: right-click the `.app` → **Open** → click **Open** in the dialog.
 
 ## Building from source
 
