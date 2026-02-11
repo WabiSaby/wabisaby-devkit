@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 
 	"github.com/wabisaby/devkit-dashboard/internal/git"
 	"github.com/wabisaby/devkit-dashboard/internal/model"
@@ -232,12 +231,8 @@ func OpenProject(devkitRoot, projectsDir, projectName string) error {
 	// Use direct editor command
 	cmd := exec.Command(editor, workspaceFile)
 
-	// Detach the process from the parent on Unix systems
-	if runtime.GOOS != "windows" {
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Setpgid: true,
-		}
-	}
+	// Detach the process from the parent (Unix only)
+	setSysProcAttr(cmd)
 
 	// Don't wait for the command to complete
 	if err := cmd.Start(); err != nil {

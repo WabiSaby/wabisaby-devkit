@@ -10,10 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/wabisaby/devkit-dashboard/internal/config"
@@ -122,10 +120,8 @@ func (pm *ProcessManager) Start(serviceName string) error {
 	// Use GOTOOLCHAIN=auto so the project's go.mod toolchain requirement is respected (e.g. 1.24.4)
 	cmd.Env = append(envForGoRun(), envVars...)
 
-	// Set up process group for clean termination
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
+	// Set up process group for clean termination (Unix only)
+	setSysProcAttr(cmd)
 
 	// Set up pipes for log capture
 	stdout, err := cmd.StdoutPipe()
@@ -229,15 +225,8 @@ func (pm *ProcessManager) Stop(serviceName string) error {
 	proc.State = ProcessStopping
 	pm.mu.Unlock()
 
-	// Send SIGTERM to process group
-	if proc.Cmd.Process != nil {
-		pgid, err := syscall.Getpgid(proc.Cmd.Process.Pid)
-		if err == nil {
-			syscall.Kill(-pgid, syscall.SIGTERM)
-		} else {
-			proc.Cmd.Process.Signal(syscall.SIGTERM)
-		}
-	}
+	// Send SIGTERM (or equivalent) to process group
+	terminateProcess(proc.Cmd)
 
 	// Wait with timeout
 	select {
@@ -245,14 +234,7 @@ func (pm *ProcessManager) Stop(serviceName string) error {
 		// Clean exit
 	case <-time.After(10 * time.Second):
 		// Force kill
-		if proc.Cmd.Process != nil {
-			pgid, err := syscall.Getpgid(proc.Cmd.Process.Pid)
-			if err == nil {
-				syscall.Kill(-pgid, syscall.SIGKILL)
-			} else {
-				proc.Cmd.Process.Kill()
-			}
-		}
+		forceKillProcess(proc.Cmd)
 		<-proc.done
 	}
 
@@ -377,13 +359,7 @@ func (pm *ProcessManager) KillProcessOnPort(port int) error {
 		if line == "" {
 			continue
 		}
-		pid, err := strconv.Atoi(line)
-		if err != nil {
-			continue
-		}
-		if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
-			log.Printf("Failed to kill PID %d on port %d: %v", pid, port, err)
-		}
+		killPidByPort(line, port)
 	}
 	return nil
 }
