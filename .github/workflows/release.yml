@@ -40,11 +40,16 @@ jobs:
           export GOTOOLCHAIN=go1.22.4
           wails build -platform linux/amd64
         working-directory: app
+      - name: Package
+        run: |
+          cd build/bin
+          tar czvf DevKit-linux-amd64.tar.gz .
+        working-directory: app
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: DevKit-linux-amd64
-          path: app/build/bin/
+          path: app/build/bin/DevKit-linux-amd64.tar.gz
 
   build-windows:
     runs-on: windows-latest
@@ -73,11 +78,17 @@ jobs:
           export GOTOOLCHAIN=go1.22.4
           wails build -platform windows/amd64
         working-directory: app
+      - name: Package
+        shell: bash
+        run: |
+          cd build/bin
+          zip -r DevKit-windows-amd64.zip .
+        working-directory: app
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: DevKit-windows-amd64
-          path: app/build/bin/
+          path: app/build/bin/DevKit-windows-amd64.zip
 
   build-darwin:
     runs-on: macos-latest
@@ -105,11 +116,16 @@ jobs:
           export GOTOOLCHAIN=go1.22.4
           wails build -platform darwin/universal
         working-directory: app
+      - name: Package
+        run: |
+          cd build/bin
+          tar czvf DevKit-darwin-universal.tar.gz .
+        working-directory: app
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: DevKit-darwin-universal
-          path: app/build/bin/
+          path: app/build/bin/DevKit-darwin-universal.tar.gz
 
   release:
     name: Create Release
@@ -131,9 +147,10 @@ jobs:
         with:
           draft: false
           body_path: RELEASE_NOTES.md
+          fail_on_unmatched_files: false
           files: |
-            release-artifacts/DevKit-linux-amd64/*
-            release-artifacts/DevKit-windows-amd64/*
-            release-artifacts/DevKit-darwin-universal/*
+            release-artifacts/DevKit-linux-amd64/DevKit-linux-amd64.tar.gz
+            release-artifacts/DevKit-windows-amd64/DevKit-windows-amd64.zip
+            release-artifacts/DevKit-darwin-universal/DevKit-darwin-universal.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
