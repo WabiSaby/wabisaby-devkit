@@ -45,15 +45,13 @@ jobs:
           wails build -platform linux/amd64 -tags webkit2_41
         working-directory: app
       - name: Package
-        run: |
-          cd build/bin
-          tar czvf DevKit-linux-amd64.tar.gz .
+        run: tar czvf DevKit-linux-amd64.tar.gz -C build/bin .
         working-directory: app
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: DevKit-linux-amd64
-          path: app/build/bin/DevKit-linux-amd64.tar.gz
+          path: app/DevKit-linux-amd64.tar.gz
 
   build-windows:
     runs-on: windows-latest
@@ -84,15 +82,13 @@ jobs:
         working-directory: app
       - name: Package
         shell: bash
-        run: |
-          cd build/bin
-          zip -r DevKit-windows-amd64.zip .
+        run: cd build/bin && zip -r ../../DevKit-windows-amd64.zip .
         working-directory: app
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: DevKit-windows-amd64
-          path: app/build/bin/DevKit-windows-amd64.zip
+          path: app/DevKit-windows-amd64.zip
 
   build-darwin:
     runs-on: macos-latest
@@ -121,15 +117,13 @@ jobs:
           wails build -platform darwin/universal
         working-directory: app
       - name: Package
-        run: |
-          cd build/bin
-          tar czvf DevKit-darwin-universal.tar.gz .
+        run: tar czvf DevKit-darwin-universal.tar.gz -C build/bin .
         working-directory: app
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: DevKit-darwin-universal
-          path: app/build/bin/DevKit-darwin-universal.tar.gz
+          path: app/DevKit-darwin-universal.tar.gz
 
   release:
     name: Create Release
