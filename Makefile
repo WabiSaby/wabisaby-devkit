@@ -3,7 +3,7 @@
 # (clone, update, sync) in the DevKit app; projects dir is configured there.
 # App build/run: app/Makefile (Wails desktop app).
 
-.PHONY: help status update sync test build format lint setup start app-build docker-up docker-down docker-status clean
+.PHONY: help status update sync test build format lint setup start app-build docker-up docker-down docker-status clean release-protos-go
 
 # Default target
 help:
@@ -26,6 +26,9 @@ help:
 	@echo "  make update       - Update all submodules (DevKit repo only)"
 	@echo "  make sync         - Sync submodule commits (DevKit repo only)"
 	@echo ""
+	@echo "  make release-protos-go        - Regenerate wabisaby-protos-go from protos (show changes)"
+	@echo "  make release-protos-go VERSION=v0.0.2  - Regenerate, commit, and tag in protos-go"
+	@echo ""
 	@echo "  make clean        - Clean build artifacts"
 	@echo ""
 	@echo "Project management (clone, update, sync) for end users is done in the DevKit app."
@@ -39,6 +42,10 @@ update:
 
 sync:
 	@./scripts/submodule-sync.sh
+
+# Regenerate wabisaby-protos-go from wabisaby-protos. Optional: VERSION=v0.0.x to commit and tag.
+release-protos-go:
+	@./scripts/release-protos-go.sh $(VERSION)
 
 # Cross-project operations
 test:

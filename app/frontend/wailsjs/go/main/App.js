@@ -130,6 +130,10 @@ export function StartProtoStream() {
   return window['go']['main']['App']['StartProtoStream']();
 }
 
+export function StartReleaseProtosGoStream(arg1) {
+  return window['go']['main']['App']['StartReleaseProtosGoStream'](arg1);
+}
+
 export function StartService(arg1) {
   return window['go']['main']['App']['StartService'](arg1);
 }
@@ -172,6 +176,10 @@ export function StopProjectStream(arg1, arg2) {
 
 export function StopProtoStream() {
   return window['go']['main']['App']['StopProtoStream']();
+}
+
+export function StopReleaseProtosGoStream() {
+  return window['go']['main']['App']['StopReleaseProtosGoStream']();
 }
 
 export function StopService(arg1) {

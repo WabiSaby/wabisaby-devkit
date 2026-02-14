@@ -67,6 +67,8 @@ export function StartProjectStream(arg1:string,arg2:string):Promise<void>;
 
 export function StartProtoStream():Promise<void>;
 
+export function StartReleaseProtosGoStream(arg1:string):Promise<void>;
+
 export function StartService(arg1:string):Promise<{[key: string]: string}>;
 
 export function StartServiceLogsStream(arg1:string):Promise<void>;
@@ -88,6 +90,8 @@ export function StopMigrationStream(arg1:string):Promise<void>;
 export function StopProjectStream(arg1:string,arg2:string):Promise<void>;
 
 export function StopProtoStream():Promise<void>;
+
+export function StopReleaseProtosGoStream():Promise<void>;
 
 export function StopService(arg1:string):Promise<{[key: string]: string}>;
 

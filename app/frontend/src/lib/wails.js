@@ -59,6 +59,8 @@ export const proto = {
     getStatus: () => getApp()?.GetProtoStatus() ?? Promise.resolve(null),
     startStream: () => getApp()?.StartProtoStream(),
     stopStream: () => getApp()?.StopProtoStream(),
+    startReleaseProtosGoStream: (version = '') => getApp()?.StartReleaseProtosGoStream(version),
+    stopReleaseProtosGoStream: () => getApp()?.StopReleaseProtosGoStream(),
 };
 
 export const generate = {

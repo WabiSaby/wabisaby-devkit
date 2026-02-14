@@ -486,6 +486,16 @@ const protobuf = [
       return status;
     },
   },
+  {
+    id: 'proto:release-protos-go',
+    label: 'Release protos-go (regenerate & preview)',
+    category: 'Protobuf',
+    icon: FileCode,
+    keywords: ['proto', 'protos-go', 'release', 'regenerate', 'wabisaby-protos-go'],
+    aliases: ['release protos go', 'regenerate protos-go'],
+    feedback: () => ({ pending: 'Running release-protos-go...', success: 'Release script started', error: 'Release script failed' }),
+    action: (ctx) => ctx.api.proto.startReleaseProtosGoStream(''),
+  },
 ];
 
 // ── Environment ─────────────────────────────────────────────────────────────

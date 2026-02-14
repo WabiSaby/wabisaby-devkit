@@ -1261,6 +1261,112 @@ func (a *App) StopProtoStream() {
 	a.streamMu.Unlock()
 }
 
+// StartReleaseProtosGoStream runs scripts/release-protos-go.sh from DevKit root and streams output.
+// version is optional: empty = generate only (preview); e.g. "v0.0.2" = commit and tag.
+// Emits: devkit:release-protos-go:stream and devkit:release-protos-go:stream:done
+func (a *App) StartReleaseProtosGoStream(version string) error {
+	streamID := "release-protos-go"
+	ctx, cancel := context.WithCancel(a.ctx)
+
+	a.streamMu.Lock()
+	if existing, ok := a.activeStreams[streamID]; ok {
+		existing()
+	}
+	a.activeStreams[streamID] = cancel
+	a.streamMu.Unlock()
+
+	scriptPath := filepath.Join(a.devkitRoot, "scripts", "release-protos-go.sh")
+	if _, err := os.Stat(scriptPath); err != nil {
+		a.streamMu.Lock()
+		delete(a.activeStreams, streamID)
+		a.streamMu.Unlock()
+		return fmt.Errorf("release script not found at %s: %w", scriptPath, err)
+	}
+
+	go func() {
+		defer func() {
+			a.streamMu.Lock()
+			delete(a.activeStreams, streamID)
+			a.streamMu.Unlock()
+		}()
+
+		args := []string{}
+		if version != "" {
+			args = append(args, version)
+		}
+		cmd := exec.CommandContext(ctx, scriptPath, args...)
+		cmd.Dir = a.devkitRoot
+
+		stdout, _ := cmd.StdoutPipe()
+		stderr, _ := cmd.StderrPipe()
+		if err := cmd.Start(); err != nil {
+			runtime.EventsEmit(a.ctx, "devkit:release-protos-go:stream", map[string]interface{}{
+				"line": fmt.Sprintf("[Error] %v", err),
+			})
+			runtime.EventsEmit(a.ctx, "devkit:release-protos-go:stream:done", map[string]interface{}{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		runtime.EventsEmit(a.ctx, "devkit:release-protos-go:stream", map[string]interface{}{
+			"line": "[Starting release-protos-go...]",
+		})
+
+		emitLine := func(r io.Reader) {
+			scanner := bufio.NewScanner(r)
+			for scanner.Scan() {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					runtime.EventsEmit(a.ctx, "devkit:release-protos-go:stream", map[string]interface{}{
+						"line": scanner.Text(),
+					})
+				}
+			}
+		}
+		go emitLine(stdout)
+		emitLine(stderr)
+
+		err := cmd.Wait()
+		if ctx.Err() != nil {
+			runtime.EventsEmit(a.ctx, "devkit:release-protos-go:stream:done", map[string]interface{}{
+				"success": false,
+				"error":   "cancelled",
+			})
+			return
+		}
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "devkit:release-protos-go:stream", map[string]interface{}{
+				"line": fmt.Sprintf("[error] %v", err),
+			})
+			runtime.EventsEmit(a.ctx, "devkit:release-protos-go:stream:done", map[string]interface{}{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+		runtime.EventsEmit(a.ctx, "devkit:release-protos-go:stream:done", map[string]interface{}{
+			"success": true,
+		})
+	}()
+
+	return nil
+}
+
+// StopReleaseProtosGoStream stops an active release-protos-go stream
+func (a *App) StopReleaseProtosGoStream() {
+	streamID := "release-protos-go"
+	a.streamMu.Lock()
+	if cancel, ok := a.activeStreams[streamID]; ok {
+		cancel()
+		delete(a.activeStreams, streamID)
+	}
+	a.streamMu.Unlock()
+}
+
 // ====================
 // Environment API
 // ====================

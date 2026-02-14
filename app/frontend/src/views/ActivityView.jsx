@@ -18,6 +18,8 @@ const STREAM_EVENTS = [
   'devkit:migration:stream:done',
   'devkit:proto:stream',
   'devkit:proto:stream:done',
+  'devkit:release-protos-go:stream',
+  'devkit:release-protos-go:stream:done',
 ];
 
 export function ActivityView() {
