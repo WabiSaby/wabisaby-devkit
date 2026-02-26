@@ -6,6 +6,7 @@ import { TagsModal } from '../components/TagsModal';
 import { DependencyGraph } from '../components/DependencyGraph';
 import { Skeleton } from '../components/Skeleton';
 import { EmptyState } from '../components/EmptyState';
+import { ViewLayout } from '../layouts';
 import { usePermissions } from '../context/PermissionsContext';
 import { RefreshCw, GitMerge, X } from 'lucide-react';
 
@@ -151,8 +152,10 @@ export function ProjectsView() {
         (window.go != null);
 
     return (
-        <div className="view">
-            {showSubmoduleBanner && (
+        <ViewLayout
+            title="Active Projects"
+            subtitle="Manage and monitor your development workspaces."
+            banner={showSubmoduleBanner ? (
                 <div className="banner banner--warning">
                     <div className="banner__content">
                         <GitMerge size={18} style={{ color: 'var(--color-warning)' }} />
@@ -172,24 +175,16 @@ export function ProjectsView() {
                         </button>
                     </div>
                 </div>
-            )}
-
-            <div className="view__header">
-                <div className="view__title-group">
-                    <h2 className="view__title">Active Projects</h2>
-                    <p className="view__subtitle">Manage and monitor your development workspaces.</p>
-                </div>
-                <div className="view__actions">
-                    <button type="button" onClick={fetchProjects} className="btn btn--secondary">
-                        <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
-                        Refresh
-                    </button>
-                </div>
-            </div>
-
+            ) : null}
+            actions={
+                <button type="button" onClick={fetchProjects} className="btn btn--secondary">
+                    <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
+                    Refresh
+                </button>
+            }
+        >
             {loading && data.length === 0 ? (
-                <div className="view__body">
-                    <div className="view__grid">
+                <div className="view__grid">
                         {[1, 2, 3, 4].map((i) => (
                             <div key={i} className="card project-card" style={{ pointerEvents: 'none' }}>
                                 <div className="card__main">
@@ -209,23 +204,18 @@ export function ProjectsView() {
                             </div>
                         ))}
                     </div>
-                </div>
             ) : filteredData.length === 0 ? (
-                <div className="view__body">
-                    <EmptyState
-                        title="No projects available"
-                        subtitle={data.length > 0
-                            ? "Your team permissions don't include access to any projects."
-                            : "Clone a project into the devkit to see it listed here."}
-                    />
-                </div>
+                <EmptyState
+                    title="No projects available"
+                    subtitle={data.length > 0
+                        ? "Your team permissions don't include access to any projects."
+                        : "Clone a project into the devkit to see it listed here."}
+                />
             ) : (
-                <div className="view__body">
-                    <div className="view__grid">
-                        {filteredData.map((p) => (
-                            <ProjectCard key={p.name} project={p} onAction={handleAction} />
-                        ))}
-                    </div>
+                <div className="view__grid">
+                    {filteredData.map((p) => (
+                        <ProjectCard key={p.name} project={p} onAction={handleAction} />
+                    ))}
                 </div>
             )}
 
@@ -245,6 +235,6 @@ export function ProjectsView() {
             {graphProject && (
                 <DependencyGraph projectName={graphProject} onClose={() => setGraphProject(null)} />
             )}
-        </div>
+        </ViewLayout>
     );
 }

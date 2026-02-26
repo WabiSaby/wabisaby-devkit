@@ -1,17 +1,37 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useOptimistic } from 'react';
+import { useFormStatus } from 'react-dom';
 import { X, Plus, Tag } from 'lucide-react';
 import { projects } from '../lib/wails';
 
+function CreateTagSubmitButton({ disabled: disabledProp }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending || disabledProp}
+      className="btn btn--primary"
+      style={{ marginTop: 'var(--space-3)' }}
+    >
+      <Plus size={14} />
+      {pending ? 'Creating…' : 'Create tag'}
+    </button>
+  );
+}
+
 export function TagsModal({ projectName, onClose }) {
   const [tags, setTags] = useState([]);
+  const [optimisticTags, addOptimisticTag] = useOptimistic(
+    tags,
+    (state, newTag) => [...state, typeof newTag === 'string' ? newTag : newTag.name ?? newTag]
+  );
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [tagName, setTagName] = useState('');
   const [tagMessage, setTagMessage] = useState('');
   const [push, setPush] = useState(false);
   const [error, setError] = useState('');
   const [isClosing, setIsClosing] = useState(false);
   const dialogRef = useRef(null);
+  const formRef = useRef(null);
 
   const handleClose = useCallback(() => {
     if (isClosing) return;
@@ -45,28 +65,29 @@ export function TagsModal({ projectName, onClose }) {
     };
   }, [projectName]);
 
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    if (!tagName.trim()) return;
-    setCreating(true);
-    setError('');
-    const { success, message } = await projects.createTag(
-      projectName,
-      tagName.trim(),
-      tagMessage.trim() || `Release ${tagName.trim()}`,
-      push
-    );
-    setCreating(false);
-    if (success) {
-      setTagName('');
-      setTagMessage('');
-      setPush(false);
-      const { success: s2, data } = await projects.listTags(projectName);
-      if (s2 && data?.tags) setTags(data.tags);
-    } else {
-      setError(message || 'Failed to create tag');
-    }
-  };
+  const createTagAction = useCallback(
+    async (formData) => {
+      const name = formData.get('tagName')?.toString().trim();
+      if (!name) return;
+      setError('');
+      addOptimisticTag(name);
+      const pushToRemote = formData.get('push') === 'on';
+      const message = formData.get('tagMessage')?.toString().trim() || `Release ${name}`;
+      const proj = formData.get('projectName')?.toString() || projectName;
+      const { success, message: errMsg } = await projects.createTag(proj, name, message, pushToRemote);
+      if (success) {
+        formRef.current?.reset();
+        setTagName('');
+        setTagMessage('');
+        setPush(false);
+        const { success: s2, data } = await projects.listTags(proj);
+        if (s2 && data?.tags) setTags(data.tags);
+      } else {
+        setError(errMsg || 'Failed to create tag');
+      }
+    },
+    [projectName, addOptimisticTag]
+  );
 
   return (
     <div
@@ -100,11 +121,11 @@ export function TagsModal({ projectName, onClose }) {
           ) : (
             <div className="modal__section">
               <p className="modal__section-title">Existing tags</p>
-              {tags.length === 0 ? (
+              {optimisticTags.length === 0 ? (
                 <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>No tags yet.</p>
               ) : (
                 <ul className="modal__list tags-modal__tag-list">
-                  {tags.map((t, i) => (
+                  {optimisticTags.map((t, i) => (
                     <li key={i} className="tags-modal__tag">
                       <Tag size={14} />
                       <span>{typeof t === 'string' ? t : t.name || t}</span>
@@ -115,10 +136,16 @@ export function TagsModal({ projectName, onClose }) {
             </div>
           )}
           {window.go && (
-            <form onSubmit={handleCreate} className="modal__section modal__divider">
+            <form
+              ref={formRef}
+              action={createTagAction}
+              className="modal__section modal__divider"
+            >
+              <input type="hidden" name="projectName" value={projectName} />
               <p className="modal__section-title">Create tag</p>
               <input
                 type="text"
+                name="tagName"
                 value={tagName}
                 onChange={(e) => setTagName(e.target.value)}
                 placeholder="e.g. v1.0.0"
@@ -126,20 +153,23 @@ export function TagsModal({ projectName, onClose }) {
               />
               <input
                 type="text"
+                name="tagMessage"
                 value={tagMessage}
                 onChange={(e) => setTagMessage(e.target.value)}
                 placeholder="Message (optional)"
                 className="input"
               />
               <label className="checkbox-label" style={{ marginTop: 'var(--space-3)' }}>
-                <input type="checkbox" checked={push} onChange={(e) => setPush(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  name="push"
+                  checked={push}
+                  onChange={(e) => setPush(e.target.checked)}
+                />
                 Push to remote
               </label>
               {error && <p className="form-error">{error}</p>}
-              <button type="submit" disabled={creating || !tagName.trim()} className="btn btn--primary" style={{ marginTop: 'var(--space-3)' }}>
-                <Plus size={14} />
-                Create tag
-              </button>
+              <CreateTagSubmitButton disabled={!tagName.trim()} />
             </form>
           )}
         </div>

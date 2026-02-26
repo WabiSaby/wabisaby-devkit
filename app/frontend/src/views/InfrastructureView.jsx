@@ -4,6 +4,7 @@ import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 import { StreamModal } from '../components/StreamModal';
 import { EmptyState } from '../components/EmptyState';
 import { StartStopAllButtons } from '../components/StartStopAllButtons';
+import { ViewLayout } from '../layouts';
 import { useToast } from '../hooks/useToast';
 import {
   RefreshCw,
@@ -205,41 +206,37 @@ export function InfrastructureView() {
   };
 
   return (
-    <div className="view">
-      <div className="view__header">
-        <div className="view__title-group">
-          <h2 className="view__title">Docker Services</h2>
-          <p className="view__subtitle">Start and stop infrastructure services.</p>
-        </div>
-        <div className="view__actions">
-          <button type="button" onClick={fetchServices} className="btn btn--secondary">
-            <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
-            Refresh
-          </button>
-          {window.go && (
-            <StartStopAllButtons
-              onStart={handleStartAll}
-              onStop={handleStopAll}
-              isStarting={bulkAction === 'start'}
-              isStopping={bulkAction === 'stop'}
-              disabled={loading}
-            />
-          )}
-        </div>
-      </div>
-
-      {loading && visibleServices.length === 0 ? (
-        <div className="view__loading">Loading services...</div>
-      ) : visibleServices.length === 0 ? (
-        <div className="view__body">
+    <>
+      <ViewLayout
+        title="Docker Services"
+        subtitle="Start and stop infrastructure services."
+        actions={
+          <>
+            <button type="button" onClick={fetchServices} className="btn btn--secondary">
+              <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
+              Refresh
+            </button>
+            {window.go && (
+              <StartStopAllButtons
+                onStart={handleStartAll}
+                onStop={handleStopAll}
+                isStarting={bulkAction === 'start'}
+                isStopping={bulkAction === 'stop'}
+                disabled={loading}
+              />
+            )}
+          </>
+        }
+        loading={loading && visibleServices.length === 0}
+        loadingContent={<div className="view__loading">Loading services...</div>}
+      >
+        {visibleServices.length === 0 ? (
           <EmptyState
             icon={<Server size={44} />}
             title="No Docker services configured"
             subtitle="When services are set up, they’ll appear here for quick start/stop actions."
           />
-        </div>
-      ) : (
-        <div className="view__body">
+        ) : (
           <div className="view__grid view__grid--sm">
             {visibleServices.map((svc) => {
               const bulkPending =
@@ -271,9 +268,8 @@ export function InfrastructureView() {
               );
             })}
           </div>
-        </div>
-      )}
-
+        )}
+      </ViewLayout>
       {logsModal && (
         <StreamModal
           title={`Service logs — ${logsModal}`}
@@ -282,7 +278,7 @@ export function InfrastructureView() {
           isActive={logsActive}
         />
       )}
-    </div>
+    </>
   );
 }
 

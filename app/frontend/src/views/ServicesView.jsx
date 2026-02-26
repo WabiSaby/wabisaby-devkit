@@ -5,6 +5,7 @@ import { StreamModal } from '../components/StreamModal';
 import { Skeleton } from '../components/Skeleton';
 import { StartStopAllButtons } from '../components/StartStopAllButtons';
 import { EmptyState } from '../components/EmptyState';
+import { ViewLayout } from '../layouts';
 import { useToast } from '../hooks/useToast';
 import {
   RefreshCw,
@@ -268,35 +269,32 @@ export function ServicesView({
   ) : null;
 
   return (
-    <div className="view">
-      <div className="view__header">
-        <div className="view__title-group">
-          <h2 className="view__title">{title}</h2>
-          <p className="view__subtitle">{subtitle}</p>
-        </div>
-        <div className="view__actions">
-          <button type="button" onClick={fetchBackends} className="btn btn--secondary">
-            <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
-            Refresh
-          </button>
-          {window.go && groupNames.length > 0 && (
-            <StartStopAllButtons
-              onStart={handleStartAll}
-              onStop={handleStopAll}
-              isStarting={bulkAction === 'start'}
-              isStopping={bulkAction === 'stop'}
-              disabled={loading}
-            />
-          )}
-        </div>
-      </div>
-
-      <div className="view__body">
+    <>
+      <ViewLayout
+        title={title}
+        subtitle={subtitle}
+        actions={
+          <>
+            <button type="button" onClick={fetchBackends} className="btn btn--secondary">
+              <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
+              Refresh
+            </button>
+            {window.go && groupNames.length > 0 && (
+              <StartStopAllButtons
+                onStart={handleStartAll}
+                onStop={handleStopAll}
+                isStarting={bulkAction === 'start'}
+                isStopping={bulkAction === 'stop'}
+                disabled={loading}
+              />
+            )}
+          </>
+        }
+      >
         {extraSectionsPosition === 'top' && renderExtra}
         {content}
         {extraSectionsPosition !== 'top' && renderExtra}
-      </div>
-
+      </ViewLayout>
       {activeLogs && (
         <StreamModal
           title={`Logs: ${activeLogs}`}
@@ -305,7 +303,7 @@ export function ServicesView({
           isActive={logActive}
         />
       )}
-    </div>
+    </>
   );
 }
 

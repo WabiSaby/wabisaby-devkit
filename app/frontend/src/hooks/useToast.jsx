@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, use, useState, useCallback } from 'react';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
 const ToastContext = createContext(null);
 
 /* eslint-disable react-refresh/only-export-components -- useToast is a hook, not a component; exported from same module as ToastProvider for convenience */
 export function useToast() {
-    const context = useContext(ToastContext);
+    const context = use(ToastContext);
     if (!context) {
         throw new Error('useToast must be used within a ToastProvider');
     }
@@ -37,8 +37,9 @@ export function ToastProvider({ children }) {
     const error = (msg) => addToast(msg, 'error');
     const info = (msg) => addToast(msg, 'info');
 
+    const value = { addToast, removeToast, success, error, info };
     return (
-        <ToastContext.Provider value={{ addToast, removeToast, success, error, info }}>
+        <ToastContext value={value}>
             {children}
             <div className="toast-container">
                 {toasts.map((toast) => (
@@ -57,6 +58,6 @@ export function ToastProvider({ children }) {
                     </div>
                 ))}
             </div>
-        </ToastContext.Provider>
+        </ToastContext>
     );
 }

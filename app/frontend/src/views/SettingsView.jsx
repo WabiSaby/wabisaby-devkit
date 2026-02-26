@@ -9,6 +9,7 @@ import {
   Eye, EyeOff, Lock, Plus, Trash2, Pencil, Save, AlertTriangle,
   LogOut, Users, Shield, ExternalLink, ClipboardCopy
 } from 'lucide-react';
+import { ViewWithSidebarLayout } from '../layouts';
 
 export function SettingsView({ onBreadcrumbChange }) {
   const [activeTab, setActiveTab] = useState('status');
@@ -374,41 +375,23 @@ export function SettingsView({ onBreadcrumbChange }) {
   const prereqTotal = prereqList.length;
 
   return (
-    <div className="view view--has-sidebar view--settings">
-      <div className="view__sidebar">
-        <h2 className="view__sidebar-title">Settings</h2>
-        <nav className="view__sidebar-nav">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`nav-item ${activeTab === tab.id ? 'nav-item--active' : ''}`}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-              {tab.count > 0 && <span className="badge badge--warning ml-auto">{tab.count}</span>}
-            </button>
-          ))}
-        </nav>
-
-        <div className="view__sidebar-footer">
-          <button type="button" onClick={fetchAll} className="btn btn--secondary btn--full" disabled={loading}>
-            <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
-            <span>Refresh Data</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="view__content-area" key={activeTab}>
-        <div className="view__header">
-          <div className="view__title-group">
-            <h2 className="view__title">{tabs.find(t => t.id === activeTab)?.label}</h2>
-            <p className="view__subtitle">{tabSubtitles[activeTab] ?? 'Configure and monitor.'}</p>
-          </div>
-        </div>
-
-        <div className="view__body">
-          {submoduleNeedsSync && submoduleNeedsSync.length > 0 && !submoduleBannerDismissed && (
+    <ViewWithSidebarLayout
+      sidebarTitle="Settings"
+      sidebarNav={tabs}
+      activeNavId={activeTab}
+      onNavSelect={setActiveTab}
+      sidebarFooter={
+        <button type="button" onClick={fetchAll} className="btn btn--secondary btn--full" disabled={loading}>
+          <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
+          <span>Refresh Data</span>
+        </button>
+      }
+      contentTitle={tabs.find(t => t.id === activeTab)?.label}
+      contentSubtitle={tabSubtitles[activeTab] ?? 'Configure and monitor.'}
+      contentKey={activeTab}
+      viewClassName="view--settings"
+    >
+      {submoduleNeedsSync && submoduleNeedsSync.length > 0 && !submoduleBannerDismissed && (
             <div className="banner banner--warning mb-4">
               <div className="banner__content">
                 <GitMerge size={18} style={{ color: 'var(--color-warning)' }} />
@@ -992,9 +975,6 @@ export function SettingsView({ onBreadcrumbChange }) {
               )}
             </section>
           )}
-
-        </div>
-      </div>
-    </div>
+    </ViewWithSidebarLayout>
   );
 }

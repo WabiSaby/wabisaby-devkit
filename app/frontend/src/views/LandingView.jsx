@@ -10,6 +10,7 @@ import {
   Github,
   ChevronRight,
 } from 'lucide-react';
+import { ViewLayout } from '../layouts';
 import { usePermissions } from '../context/PermissionsContext';
 
 const QUICK_LINKS = [
@@ -32,19 +33,16 @@ export function LandingView({ onNavigate }) {
   );
 
   return (
-    <div className="view">
-      <div className="view__header">
-        <div className="view__title-group">
-          <h1 className="view__title">DevKit</h1>
-          <p className="view__subtitle">
-            {isConnected
-              ? `Welcome back, ${permissions.username}. Pick a section below or use the sidebar.`
-              : 'WabiSaby development toolkit. Connect to GitHub to get started.'}
-          </p>
-        </div>
-      </div>
-      <div className="view__body">
-        {!loading && !isConnected && (
+    <ViewLayout
+      title="DevKit"
+      subtitle={
+        isConnected
+          ? `Welcome back, ${permissions.username}. Pick a section below or use the sidebar.`
+          : 'WabiSaby development toolkit. Connect to GitHub to get started.'
+      }
+      titleLevel="h1"
+    >
+      {!loading && !isConnected && (
           <div className="card" style={{ marginBottom: '1.5rem' }}>
             <div className="card__body" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <Github size={32} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
@@ -88,7 +86,6 @@ export function LandingView({ onNavigate }) {
             );
           })}
         </div>
-      </div>
-    </div>
+    </ViewLayout>
   );
 }

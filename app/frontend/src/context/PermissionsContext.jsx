@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, use, useState, useEffect, useCallback } from 'react';
 import { github } from '../lib/wails';
 
 const PermissionsContext = createContext(null);
@@ -66,18 +66,17 @@ export function PermissionsProvider({ children }) {
     [permissions],
   );
 
+  const value = { permissions, loading, refresh, setPermissions, canAccessView, canAccessCommandCategory };
   return (
-    <PermissionsContext.Provider
-      value={{ permissions, loading, refresh, setPermissions, canAccessView, canAccessCommandCategory }}
-    >
+    <PermissionsContext value={value}>
       {children}
-    </PermissionsContext.Provider>
+    </PermissionsContext>
   );
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function usePermissions() {
-  const ctx = useContext(PermissionsContext);
+  const ctx = use(PermissionsContext);
   if (!ctx) throw new Error('usePermissions must be used inside <PermissionsProvider>');
   return ctx;
 }

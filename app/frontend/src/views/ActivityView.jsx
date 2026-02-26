@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { events } from '../lib/wails';
 import { Trash2, Activity } from 'lucide-react';
+import { ViewLayout } from '../layouts';
 import { EmptyState } from '../components/EmptyState';
 
 const STREAM_EVENTS = [
@@ -126,21 +127,17 @@ export function ActivityView() {
   const clear = () => setEntries([]);
 
   return (
-    <div className="view">
-      <div className="view__header">
-        <div className="view__title-group">
-          <h2 className="view__title">Activity</h2>
-          <p className="view__subtitle">Live log streams from projects, services, and core.</p>
-        </div>
-        <div className="view__actions">
-          <button type="button" onClick={clear} className="btn btn--secondary">
-            <Trash2 size={14} />
-            Clear
-          </button>
-        </div>
-      </div>
-      <div className="view__body">
-        <div className="activity-toolbar">
+    <ViewLayout
+      title="Activity"
+      subtitle="Live log streams from projects, services, and core."
+      actions={
+        <button type="button" onClick={clear} className="btn btn--secondary">
+          <Trash2 size={14} />
+          Clear
+        </button>
+      }
+    >
+      <div className="activity-toolbar">
           <input
             className="input activity-toolbar__input"
             placeholder="Filter logs..."
@@ -229,7 +226,6 @@ export function ActivityView() {
             );
           })}
         </div>
-      </div>
-    </div>
+    </ViewLayout>
   );
 }

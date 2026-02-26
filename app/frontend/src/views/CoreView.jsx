@@ -5,6 +5,7 @@ import { StreamModal } from '../components/StreamModal';
 import { Skeleton } from '../components/Skeleton';
 import { StartStopAllButtons } from '../components/StartStopAllButtons';
 import { EmptyState } from '../components/EmptyState';
+import { ViewLayout } from '../layouts';
 import { useToast } from '../hooks/useToast';
 import {
   RefreshCw,
@@ -170,51 +171,50 @@ export function ServicesView() {
   }, {});
 
   return (
-    <div className="view">
-      <div className="view__header">
-        <div className="view__title-group">
-          <h2 className="view__title">Service Dashboard</h2>
-          <p className="view__subtitle">Control and monitor application services and nodes.</p>
-        </div>
-        <div className="view__actions">
-          <button type="button" onClick={fetchBackends} className="btn btn--secondary">
-            <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
-            Refresh
-          </button>
-          {window.go && groupNames.length > 0 && (
-            <StartStopAllButtons
-              onStart={handleStartAll}
-              onStop={handleStopAll}
-              isStarting={bulkAction === 'start'}
-              isStopping={bulkAction === 'stop'}
-              disabled={loading}
-            />
-          )}
-        </div>
-      </div>
-
-      {loading && backends.length === 0 ? (
-        <div className="view__grid">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card">
-              <div className="card__header">
-                <Skeleton width={32} height={32} variant="circle" />
-                <Skeleton width={100} height={20} />
+    <>
+      <ViewLayout
+        title="Service Dashboard"
+        subtitle="Control and monitor application services and nodes."
+        actions={
+          <>
+            <button type="button" onClick={fetchBackends} className="btn btn--secondary">
+              <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
+              Refresh
+            </button>
+            {window.go && groupNames.length > 0 && (
+              <StartStopAllButtons
+                onStart={handleStartAll}
+                onStop={handleStopAll}
+                isStarting={bulkAction === 'start'}
+                isStopping={bulkAction === 'stop'}
+                disabled={loading}
+              />
+            )}
+          </>
+        }
+        loading={loading && backends.length === 0}
+        loadingContent={
+          <div className="view__grid">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="card">
+                <div className="card__header">
+                  <Skeleton width={32} height={32} variant="circle" />
+                  <Skeleton width={100} height={20} />
+                </div>
+                <Skeleton width="100%" height={60} />
               </div>
-              <Skeleton width="100%" height={60} />
-            </div>
-          ))}
-        </div>
-      ) : backends.length === 0 ? (
-        <div className="view__body">
+            ))}
+          </div>
+        }
+      >
+        {backends.length === 0 ? (
           <EmptyState
             icon={<Server size={44} />}
             title="No runnable services found"
             subtitle="When core services are available, you’ll see them listed here."
           />
-        </div>
-      ) : (
-        <div className="view__body">
+        ) : (
+          <>
           {Object.entries(groups).map(([groupName, services]) => (
             <div key={groupName} className="view__section">
               <div className="view__section-header">
@@ -248,9 +248,9 @@ export function ServicesView() {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
+          </>
+        )}
+      </ViewLayout>
       {activeLogs && (
         <StreamModal
           title={`Logs: ${activeLogs}`}
@@ -259,7 +259,7 @@ export function ServicesView() {
           isActive={logActive}
         />
       )}
-    </div>
+    </>
   );
 }
 
