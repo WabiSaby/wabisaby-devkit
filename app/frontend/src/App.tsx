@@ -87,7 +87,9 @@ function AppInner() {
   // Cmd+B is handled by the native app menu (View > Toggle Sidebar); listen for the event from Go
   useEffect(() => {
     events.on('devkit:toggle-sidebar', () => setSidebarOpen((prev) => !prev));
-    return () => events.off('devkit:toggle-sidebar');
+    return () => {
+      events.off('devkit:toggle-sidebar');
+    };
   }, []);
 
   // Global shortcut: Cmd+K / Ctrl+K for command palette

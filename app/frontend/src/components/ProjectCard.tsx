@@ -35,7 +35,7 @@ export function ProjectCard({ project, onAction }) {
                         <span
                             className="project-card__language"
                             title="Primary language"
-                            style={{ '--lang-color': langColor }}
+                            style={{ ['--lang-color']: langColor } as React.CSSProperties}
                         >
                             <span className="project-card__language-dot" />
                             {project.language}

@@ -131,8 +131,8 @@ const SCORES = {
 // ── Reverse Lookup Maps ────────────────────────────────────────────────────
 // Built once at module load. Maps each synonym → Set of canonical forms.
 
-function buildReverseMap(dict) {
-  const reverse = {};
+function buildReverseMap(dict: Record<string, string[]>) {
+  const reverse: Record<string, Set<string>> = {};
   for (const [canonical, synonyms] of Object.entries(dict)) {
     // The canonical word maps to itself
     if (!reverse[canonical]) reverse[canonical] = new Set();
@@ -184,20 +184,39 @@ function getAcronym(words) {
 
 // ── Command Search Engine ──────────────────────────────────────────────────
 
+export interface IndexEntry {
+  cmd: unknown;
+  labelWords: string[];
+  keywords: string[];
+  aliasTokens: string[];
+  categoryWords: string[];
+  idSegments: string[];
+  acronym: string;
+  verbs: Set<string>;
+  targets: Set<string>;
+  labelStr: string;
+  keywordStr: string;
+  dynamicKeywords: string[];
+  dynamicKeywordsStr: string;
+}
+
 export class CommandSearchEngine {
+  commands: unknown[];
+  _index: IndexEntry[];
+
   /**
-   * @param {Array} commands – array of command objects from ALL_COMMANDS
+   * @param commands – array of command objects from ALL_COMMANDS
    */
-  constructor(commands) {
+  constructor(commands: unknown[]) {
     this.commands = commands;
-    this._index = commands.map((cmd) => this._indexCommand(cmd));
+    this._index = commands.map((cmd: unknown) => this._indexCommand(cmd as { id: string; label: string; category: string; keywords?: string[]; aliases?: string[] }));
   }
 
   /**
    * Pre-compute searchable metadata for a command.
    * This runs once per command at construction time.
    */
-  _indexCommand(cmd) {
+  _indexCommand(cmd: { id: string; label: string; category: string; keywords?: string[]; aliases?: string[] }) {
     const labelWords    = extractWords(cmd.label);
     const keywords      = (cmd.keywords || []).map((k) => normalize(k));
     const aliasTokens   = (cmd.aliases || []).flatMap((a) => extractWords(a));
@@ -208,8 +227,8 @@ export class CommandSearchEngine {
     // Collect all searchable words to detect canonical verbs & targets
     const allWords = [...labelWords, ...keywords, ...aliasTokens, ...categoryWords, ...idSegments];
 
-    const verbs   = new Set();
-    const targets = new Set();
+    const verbs   = new Set<string>();
+    const targets = new Set<string>();
     for (const w of allWords) {
       const vSet = verbLookup[w];
       if (vSet) for (const v of vSet) verbs.add(v);
@@ -247,7 +266,7 @@ export class CommandSearchEngine {
    * @param {string[]} keywords – array of dynamic keyword strings
    */
   setDynamicKeywords(commandId, keywords) {
-    const entry = this._index.find((e) => e.cmd.id === commandId);
+    const entry = this._index.find((e) => (e.cmd as { id: string }).id === commandId);
     if (!entry) return;
     entry.dynamicKeywords    = keywords.flatMap((k) => extractWords(k));
     entry.dynamicKeywordsStr = entry.dynamicKeywords.join(' ');
@@ -290,7 +309,7 @@ export class CommandSearchEngine {
    * Compute a composite score for a command against the query tokens.
    * Applies a coverage multiplier to penalize unmatched tokens.
    */
-  _scoreCommand(tokens, entry) {
+  _scoreCommand(tokens: string[], entry: IndexEntry) {
     let totalScore = 0;
     let matchedTokens = 0;
 
@@ -315,7 +334,7 @@ export class CommandSearchEngine {
    * Matchers are checked roughly in priority order with early-exit
    * optimizations (skip lower-priority checks once a high score is found).
    */
-  _scoreToken(token, idx) {
+  _scoreToken(token: string, idx: IndexEntry) {
     let best = 0;
 
     // 1. Exact match on label words

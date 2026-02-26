@@ -289,7 +289,7 @@ export function DependencyGraph({ projectName, onClose }) {
                                             filter="url(#dep-graph-shadow-sm)"
                                         />
                                         <foreignObject x={0} y={0} width={node.width} height={node.height} className="dependency-graph__node-fo">
-                                            <div className="dependency-graph__node-content" xmlns="http://www.w3.org/1999/xhtml" title={node.name}>
+                                            <div className="dependency-graph__node-content" {...({ xmlns: 'http://www.w3.org/1999/xhtml', title: node.name } as React.HTMLAttributes<HTMLDivElement>)}>
                                                 <span className="dependency-graph__node-label">{node.displayLabel}</span>
                                                 {node.version && (
                                                     <span className="dependency-graph__node-version">{node.version}</span>
@@ -316,7 +316,7 @@ export function DependencyGraph({ projectName, onClose }) {
                                             filter="url(#dep-graph-shadow)"
                                         />
                                         <foreignObject x={0} y={0} width={node.width} height={node.height} className="dependency-graph__node-fo">
-                                            <div className="dependency-graph__node-content dependency-graph__node-content--root" xmlns="http://www.w3.org/1999/xhtml" title={node.name}>
+                                            <div className="dependency-graph__node-content dependency-graph__node-content--root" {...({ xmlns: 'http://www.w3.org/1999/xhtml', title: node.name } as React.HTMLAttributes<HTMLDivElement>)}>
                                                 <span className="dependency-graph__node-label dependency-graph__node-label--root">{node.displayLabel}</span>
                                             </div>
                                         </foreignObject>

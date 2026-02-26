@@ -164,7 +164,7 @@ export function InfrastructureView() {
   const waitForServiceRunning = async (serviceName, attempts = 10, delayMs = 800) => {
     for (let i = 0; i < attempts; i += 1) {
       try {
-        const servicesList = await services.list();
+        const servicesList = (await services.list()) as { name: string; status: string }[];
         const match = servicesList.find((entry) => entry.name === serviceName);
         if (match?.status === 'running') return match;
       } catch {

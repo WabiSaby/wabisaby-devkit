@@ -47,7 +47,7 @@ export function ActivityView() {
     }
     if (!line.startsWith('time=')) return { raw: line };
 
-    const fields = {};
+    const fields: Record<string, string> = {};
     const re = /(\w+)=("(?:[^"\\]|\\.)*"|\S+)/g;
     let match;
     while ((match = re.exec(line)) !== null) {
@@ -139,7 +139,7 @@ export function ActivityView() {
       events.on(eventName, handlers[eventName]);
     });
     return () => {
-      STREAM_EVENTS.forEach((eventName) => events.off(eventName, handlers[eventName]));
+      STREAM_EVENTS.forEach((eventName) => events.off(eventName));
     };
   }, []);
 

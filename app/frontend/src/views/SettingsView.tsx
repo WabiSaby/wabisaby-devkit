@@ -36,7 +36,7 @@ export function SettingsView({ onBreadcrumbChange }) {
       ]);
       setAppStatus(s ?? null);
       setPrereqList(Array.isArray(p) ? p : []);
-      const needs = sub?.needsSync;
+      const needs = (sub as { needsSync?: unknown } | null | undefined)?.needsSync;
       setSubmoduleNeedsSync(Array.isArray(needs) && needs.length > 0 ? needs : null);
       setEnvStatus(e ?? null);
     } catch {

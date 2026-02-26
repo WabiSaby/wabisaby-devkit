@@ -1,6 +1,13 @@
 import React from 'react';
 
-export function EmptyState({ icon, title, subtitle, action }) {
+export interface EmptyStateProps {
+  icon?: React.ReactNode;
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  action?: React.ReactNode;
+}
+
+export function EmptyState({ icon, title, subtitle, action }: EmptyStateProps) {
   return (
     <div className="empty-state">
       {icon && <div className="empty-state__icon">{icon}</div>}

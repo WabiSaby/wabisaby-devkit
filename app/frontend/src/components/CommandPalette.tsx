@@ -43,10 +43,10 @@ export function CommandPalette({ open, onClose, ctx }) {
     let cancelled = false;
 
     const fetchDynamicContext = async () => {
-      const paramCommands = filteredCommandList.filter((cmd) => cmd.getParams);
+      const paramCommands = filteredCommandList.filter((cmd) => (cmd as { getParams?: (ctx: unknown) => Promise<unknown> }).getParams);
       const results = await Promise.allSettled(
         paramCommands.map((cmd) =>
-          cmd.getParams(ctx).then((params) => ({ id: cmd.id, params })),
+          (cmd as { getParams: (ctx: unknown) => Promise<{ id: string; label: string }[]> }).getParams(ctx).then((params) => ({ id: cmd.id, params })),
         ),
       );
 

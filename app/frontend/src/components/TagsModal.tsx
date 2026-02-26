@@ -22,7 +22,7 @@ export function TagsModal({ projectName, onClose }) {
   const [tags, setTags] = useState([]);
   const [optimisticTags, addOptimisticTag] = useOptimistic(
     tags,
-    (state, newTag) => [...state, typeof newTag === 'string' ? newTag : newTag.name ?? newTag]
+    (state: string[], newTag: unknown) => [...state, typeof newTag === 'string' ? newTag : (typeof newTag === 'object' && newTag !== null && 'name' in newTag ? (newTag as { name?: string }).name : undefined) ?? String(newTag)]
   );
   const [loading, setLoading] = useState(true);
   const [tagName, setTagName] = useState('');

@@ -575,7 +575,7 @@ export function getFilteredCommands(permissions) {
   const allowedViews = new Set(permissions.views ?? []);
   const allowedCategories = new Set(permissions.commands ?? []);
 
-  return ALL_COMMANDS.filter((cmd) => {
+  return ALL_COMMANDS.filter((cmd: { targetView?: string; category: string }) => {
     // Navigation commands: filter by target view
     if (cmd.targetView) {
       return allowedViews.has(cmd.targetView);

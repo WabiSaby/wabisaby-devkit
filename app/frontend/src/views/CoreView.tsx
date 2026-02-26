@@ -226,7 +226,7 @@ export function ServicesView() {
               </div>
 
               <div className="view__grid view__grid--sm">
-                {services.map((svc) => {
+                {(services as { name: string; status: string; group?: string }[]).map((svc) => {
                   const bulkPending =
                     bulkAction === 'start'
                       ? svc.status !== 'running'

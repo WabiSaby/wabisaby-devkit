@@ -64,7 +64,7 @@ export function ProjectsView() {
 
     const fetchSubmoduleStatus = useCallback(async () => {
         if (!window.go) return;
-        const status = await submodule.getSyncStatus();
+        const status = await submodule.getSyncStatus() as { needsSync?: unknown } | null | undefined;
         const needs = status?.needsSync;
         setSubmoduleNeedsSync(Array.isArray(needs) && needs.length > 0 ? needs : null);
     }, []);
