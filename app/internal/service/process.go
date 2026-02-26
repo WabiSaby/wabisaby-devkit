@@ -2,9 +2,11 @@ package service
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -15,6 +17,13 @@ import (
 	"time"
 
 	"github.com/wabisaby/devkit-dashboard/internal/config"
+)
+
+const (
+	portRegistryDir  = ".devkit"
+	portRegistryFile = "started-ports.json"
+	portFreeWaitMax  = 3 * time.Second
+	portFreePoll     = 100 * time.Millisecond
 )
 
 // ProcessState represents the state of a managed process
@@ -59,6 +68,7 @@ type ProcessManager struct {
 	processes      map[string]*ManagedProcess
 	wabisabyRoot   string
 	projectsDir    string
+		envRoot        string // directory to load .env from (e.g. devkit repo root)
 	onExit         BackendExitCallback
 	onActivityLine ActivityLineCallback
 }
@@ -77,13 +87,117 @@ func (pm *ProcessManager) SetOnActivityLine(cb ActivityLineCallback) {
 	pm.onActivityLine = cb
 }
 
-// NewProcessManager creates a new process manager
-func NewProcessManager(wabisabyRoot string, projectsDir string) *ProcessManager {
-	return &ProcessManager{
+// NewProcessManager creates a new process manager and frees any ports recorded from a previous run (so restarts can bind).
+// envRoot is the directory used to load .env when starting services (e.g. devkit repo root); if empty, wabisabyRoot is used.
+func NewProcessManager(wabisabyRoot string, projectsDir string, envRoot string) *ProcessManager {
+	if envRoot == "" {
+		envRoot = wabisabyRoot
+	}
+	pm := &ProcessManager{
 		processes:    make(map[string]*ManagedProcess),
 		wabisabyRoot: wabisabyRoot,
 		projectsDir:  projectsDir,
+		envRoot:      envRoot,
 	}
+	pm.freePortsFromRegistry()
+	return pm
+}
+
+// portRegistryPath returns the path to the persisted port registry file.
+func (pm *ProcessManager) portRegistryPath() string {
+	return filepath.Join(pm.wabisabyRoot, portRegistryDir, portRegistryFile)
+}
+
+// loadPortRegistry reads service name -> port from the registry file (empty map if missing or invalid).
+func (pm *ProcessManager) loadPortRegistry() map[string]int {
+	path := pm.portRegistryPath()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return make(map[string]int)
+	}
+	var out map[string]int
+	if err := json.Unmarshal(data, &out); err != nil {
+		return make(map[string]int)
+	}
+	if out == nil {
+		return make(map[string]int)
+	}
+	return out
+}
+
+// savePortRegistry writes the service -> port map to the registry file.
+func (pm *ProcessManager) savePortRegistry(reg map[string]int) error {
+	dir := filepath.Join(pm.wabisabyRoot, portRegistryDir)
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(reg, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(pm.portRegistryPath(), data, 0640)
+}
+
+// freePortsFromRegistry kills any process on ports we had started in a previous run, then clears the registry.
+func (pm *ProcessManager) freePortsFromRegistry() {
+	reg := pm.loadPortRegistry()
+	if len(reg) == 0 {
+		return
+	}
+	for name, port := range reg {
+		if port <= 0 {
+			continue
+		}
+		if err := pm.KillProcessOnPort(port); err == nil {
+			log.Printf("Freed port %d (previously used by %s) from last run", port, name)
+		}
+		// Brief wait so the OS releases the port
+		time.Sleep(200 * time.Millisecond)
+	}
+	_ = pm.savePortRegistry(make(map[string]int))
+}
+
+// IsPortInUse returns true if something is listening on the given port.
+func (pm *ProcessManager) IsPortInUse(port int) bool {
+	if port <= 0 {
+		return false
+	}
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	conn, err := net.DialTimeout("tcp", addr, 150*time.Millisecond)
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
+// WaitForPortFree blocks until the port is not in use or timeout expires.
+func (pm *ProcessManager) WaitForPortFree(port int, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if !pm.IsPortInUse(port) {
+			return true
+		}
+		time.Sleep(portFreePoll)
+	}
+	return false
+}
+
+// recordPortStarted adds service -> port to the registry and persists it (call after successful start).
+func (pm *ProcessManager) recordPortStarted(serviceName string, port int) {
+	if port <= 0 {
+		return
+	}
+	reg := pm.loadPortRegistry()
+	reg[serviceName] = port
+	_ = pm.savePortRegistry(reg)
+}
+
+// recordPortStopped removes the service from the registry and persists (call after stop).
+func (pm *ProcessManager) recordPortStopped(serviceName string) {
+	reg := pm.loadPortRegistry()
+	delete(reg, serviceName)
+	_ = pm.savePortRegistry(reg)
 }
 
 // Start starts a WabiSaby-Go service
@@ -102,11 +216,33 @@ func (pm *ProcessManager) Start(serviceName string) error {
 		return fmt.Errorf("unknown service: %s", serviceName)
 	}
 
+	// Free the service's port so we can bind (kill any process on it, then wait until free)
+	if svcConfig.Port > 0 {
+		_ = pm.KillProcessOnPort(svcConfig.Port)
+		if !pm.WaitForPortFree(svcConfig.Port, portFreeWaitMax) {
+			return fmt.Errorf("port %d still in use after freeing it", svcConfig.Port)
+		}
+	}
+
 	// Load .env file
 	envVars, err := pm.loadEnvFile()
 	if err != nil {
 		log.Printf("Warning: failed to load .env file: %v", err)
 		// Continue without .env - some vars might be set in environment
+	}
+
+	// Node: default IPFS API to port 5011 so it doesn't conflict with system IPFS or other nodes on 5001
+	if serviceName == "node" {
+		hasIPFSAPI := false
+		for _, e := range envVars {
+			if strings.HasPrefix(e, "WABISABY_NODE_IPFS_API_URL=") {
+				hasIPFSAPI = true
+				break
+			}
+		}
+		if !hasIPFSAPI {
+			envVars = append(envVars, "WABISABY_NODE_IPFS_API_URL=http://localhost:5011")
+		}
 	}
 
 	// Create command
@@ -209,6 +345,7 @@ func (pm *ProcessManager) Start(serviceName string) error {
 
 	proc.State = ProcessRunning
 	pm.processes[serviceName] = proc
+	pm.recordPortStarted(serviceName, svcConfig.Port)
 	log.Printf("Started service %s (PID: %d)", serviceName, proc.PID)
 
 	return nil
@@ -240,6 +377,7 @@ func (pm *ProcessManager) Stop(serviceName string) error {
 
 	pm.mu.Lock()
 	proc.State = ProcessStopped
+	pm.recordPortStopped(serviceName)
 	pm.mu.Unlock()
 
 	log.Printf("Stopped service %s", serviceName)
@@ -432,9 +570,9 @@ func (proc *ManagedProcess) appendLastOutput(line string) {
 	}
 }
 
-// loadEnvFile loads environment variables from .env file
+// loadEnvFile loads environment variables from .env file (from envRoot, typically devkit repo root)
 func (pm *ProcessManager) loadEnvFile() ([]string, error) {
-	envPath := filepath.Join(pm.wabisabyRoot, ".env")
+	envPath := filepath.Join(pm.envRoot, ".env")
 	data, err := os.ReadFile(envPath)
 	if err != nil {
 		return nil, err

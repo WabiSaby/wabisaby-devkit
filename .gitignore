@@ -18,6 +18,9 @@ Thumbs.db
 .classpath
 .settings/
 
+# DevKit runtime (port registry, etc.)
+.devkit/
+
 # Local environment files
 .env
 .env.local

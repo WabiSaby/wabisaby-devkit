@@ -33,6 +33,18 @@ export function ActivityView() {
 
   const parseLogLine = (line) => {
     if (typeof line !== 'string') return { raw: String(line ?? '') };
+    const bracketLevel = /^\[(INFO|ERROR|WARNING|COMPLETE)\]\s*(.*)/.exec(line);
+    if (bracketLevel) {
+      return { raw: line, level: bracketLevel[1], msg: bracketLevel[2].trim() || line };
+    }
+    const stderrMatch = /^\[stderr\]\s*(.*)/s.exec(line);
+    if (stderrMatch) {
+      return { raw: line, level: 'ERROR', msg: stderrMatch[1].trim() || line };
+    }
+    const stdoutMatch = /^\[stdout\]\s*(.*)/s.exec(line);
+    if (stdoutMatch) {
+      return { raw: line, level: 'INFO', msg: stdoutMatch[1].trim() || line };
+    }
     if (!line.startsWith('time=')) return { raw: line };
 
     const fields = {};
@@ -110,7 +122,18 @@ export function ActivityView() {
           return;
         }
 
-        const line = payload?.line != null ? payload.line : JSON.stringify(payload ?? {});
+        let line = payload?.line;
+        if (line == null && eventName.endsWith(':done')) {
+          const p = payload ?? {};
+          const proj = p.project ?? p.name;
+          const act = p.action ?? '';
+          const desc = proj && act ? `${proj} ${act}` : (proj || act || 'Operation');
+          if (p.success === true) line = `[COMPLETE] ${desc} completed successfully`;
+          else if (p.success === false) line = p.exitCode != null
+            ? `[COMPLETE] ${desc} failed with exit code ${p.exitCode}`
+            : `[COMPLETE] ${desc} failed${p.error ? `: ${p.error}` : ''}`;
+        }
+        if (line == null) line = JSON.stringify(payload ?? {});
         setEntries((prev) => [...prev.slice(-999), { ts: Date.now(), source, line, event: eventName }]);
       };
       events.on(eventName, handlers[eventName]);
@@ -191,7 +214,7 @@ export function ActivityView() {
             const time =
               parsed.time && !Number.isNaN(Date.parse(parsed.time))
                 ? new Date(parsed.time).toLocaleTimeString()
-                : '';
+                : (e.ts ? new Date(e.ts).toLocaleTimeString() : '');
             return (
               <div key={i} className="activity-log__entry">
                 <span className="activity-log__source" title={e.event}>

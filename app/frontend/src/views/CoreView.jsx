@@ -64,9 +64,13 @@ export function ServicesView() {
     if (!activeLogs) return;
 
     const onLog = (payload) => {
-      if (payload?.line != null) setLogLines((prev) => [...prev, payload.line]);
+      if (payload?.line == null) return;
+      if (payload?.name !== activeLogs) return;
+      setLogLines((prev) => [...prev, payload.line]);
     };
-    const onDone = () => setLogActive(false);
+    const onDone = (payload) => {
+      if (payload?.name === activeLogs) setLogActive(false);
+    };
 
     events.on('devkit:backend:logs', onLog);
     events.on('devkit:backend:logs:done', onDone);

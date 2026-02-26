@@ -32,12 +32,12 @@ func GetBackendServices() []BackendServiceConfig {
 			Port:    8081,
 		},
 
-		// WabiSaby Mesh (coordinator.yaml)
+		// WabiSaby Mesh (coordinator.yaml) — 50052 to avoid conflict with capabilities-server (50051)
 		{
 			Name:    "network-coordinator",
 			CmdPath: "./cmd/network-coordinator",
 			Group:   "mesh",
-			Port:    50051,
+			Port:    50052,
 		},
 
 		// Node (separate repo: wabisaby-node)
@@ -104,6 +104,8 @@ func OptionalEnvVars() []string {
 		"PORT",
 		"WEBSOCKET_PORT",
 		"CAPABILITIES_PORT",
+		"WABISABY_COORDINATOR_COORDINATOR_GRPC_ADDR",
+		"WABISABY_COORDINATOR_ADDR",
 		"STORAGE_ENDPOINT",
 		"STORAGE_ACCESS_KEY",
 		"STORAGE_SECRET_KEY",

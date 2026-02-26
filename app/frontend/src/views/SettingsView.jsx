@@ -4,7 +4,7 @@ import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 import { usePermissions } from '../context/PermissionsContext';
 import {
   RefreshCw, CheckCircle, XCircle, GitMerge, X,
-  Settings as SettingsIcon, Layout, Terminal, Github,
+  Settings as SettingsIcon, ListChecks, Terminal, Github,
   Clock, GitBranch, FolderOpen, Boxes, Server, FileCode, Copy,
   Eye, EyeOff, Lock, Plus, Trash2, Pencil, Save, AlertTriangle,
   LogOut, Users, Shield, ExternalLink, ClipboardCopy
@@ -337,7 +337,7 @@ export function SettingsView({ onBreadcrumbChange }) {
   const tabs = [
     { id: 'status', label: 'General Status', icon: <SettingsIcon size={16} /> },
     { id: 'github', label: 'GitHub', icon: <Github size={16} /> },
-    { id: 'prereqs', label: 'Prerequisites', icon: <Layout size={16} /> },
+    { id: 'prereqs', label: 'Prerequisites', icon: <ListChecks size={16} /> },
     { id: 'env', label: 'Environment', icon: <Terminal size={16} /> },
   ];
 

@@ -43,7 +43,7 @@ type App struct {
 
 // NewApp creates a new App instance
 func NewApp(cfg *config.Config) *App {
-	processManager := service.NewProcessManager(cfg.WabisabyCorePath, cfg.ProjectsDir)
+	processManager := service.NewProcessManager(cfg.WabisabyCorePath, cfg.ProjectsDir, cfg.DevKitRoot)
 	migrationSvc := service.NewMigrationService(cfg.WabisabyCorePath)
 	envSvc := service.NewEnvService(cfg.WabisabyCorePath)
 	protoSvc := service.NewProtoService(cfg.ProjectsDir)
@@ -1031,8 +1031,8 @@ func (a *App) StartBackendLogsStream(name string) error {
 		defer unsubscribe()
 
 		runtime.EventsEmit(a.ctx, "devkit:backend:logs", map[string]interface{}{
-			"service": name,
-			"line":    fmt.Sprintf("[Connected to %s logs]", name),
+			"name": name,
+			"line": fmt.Sprintf("[Connected to %s logs]", name),
 		})
 
 		for {
@@ -1042,17 +1042,17 @@ func (a *App) StartBackendLogsStream(name string) error {
 			case line, ok := <-logCh:
 				if !ok {
 					runtime.EventsEmit(a.ctx, "devkit:backend:logs", map[string]interface{}{
-						"service": name,
-						"line":    "[Log stream ended]",
+						"name": name,
+						"line": "[Log stream ended]",
 					})
 					runtime.EventsEmit(a.ctx, "devkit:backend:logs:done", map[string]interface{}{
-						"service": name,
+						"name": name,
 					})
 					return
 				}
 				runtime.EventsEmit(a.ctx, "devkit:backend:logs", map[string]interface{}{
-					"service": name,
-					"line":    line,
+					"name": name,
+					"line": line,
 				})
 			}
 		}
