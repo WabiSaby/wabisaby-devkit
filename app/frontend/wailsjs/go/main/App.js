@@ -78,6 +78,10 @@ export function ListTags(arg1) {
   return window['go']['main']['App']['ListTags'](arg1);
 }
 
+export function OpenWebAppURL() {
+  return window['go']['main']['App']['OpenWebAppURL']();
+}
+
 export function ProjectClone(arg1) {
   return window['go']['main']['App']['ProjectClone'](arg1);
 }
@@ -142,6 +146,10 @@ export function StartServiceLogsStream(arg1) {
   return window['go']['main']['App']['StartServiceLogsStream'](arg1);
 }
 
+export function StartWebAppDev() {
+  return window['go']['main']['App']['StartWebAppDev']();
+}
+
 export function Status() {
   return window['go']['main']['App']['Status']();
 }
@@ -188,6 +196,10 @@ export function StopService(arg1) {
 
 export function StopServiceLogsStream(arg1) {
   return window['go']['main']['App']['StopServiceLogsStream'](arg1);
+}
+
+export function StopWebAppDev() {
+  return window['go']['main']['App']['StopWebAppDev']();
 }
 
 export function SubmoduleSync(arg1) {

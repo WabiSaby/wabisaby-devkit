@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@wabisaby/ui": "file:../../projects/wabisaby-ui",
     "framer-motion": "^12.30.0",
     "fuse.js": "^7.1.0",
     "lucide-react": "^0.563.0",

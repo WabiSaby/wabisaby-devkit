@@ -6,6 +6,7 @@ import { usePermissions } from '../context/PermissionsContext';
 const VIEW_LABELS = {
   home: 'Home',
   projects: 'Projects',
+  frontend: 'Frontend',
   infrastructure: 'Infrastructure',
   backend: 'Backend',
   mesh: 'WabiSaby Mesh',

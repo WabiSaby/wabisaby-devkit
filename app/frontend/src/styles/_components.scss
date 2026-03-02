@@ -2292,9 +2292,15 @@
   align-items: center;
   padding: 4px 0;
   border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
 
   &:last-child {
     border-bottom: 0;
+  }
+
+  &--expanded {
+    align-items: start;
   }
 }
 
@@ -2361,9 +2367,16 @@
 
 .activity-log__message {
   color: var(--text-sub);
-  white-space: normal;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 0;
+
+  &--expanded {
+    white-space: normal;
+    word-break: break-word;
+    overflow: visible;
+  }
 }
 
 .activity-log__meta {

@@ -38,3 +38,16 @@ From the **devkit repo root**:
 | `get-node-token.sh --env [user] [pass]` | Print `.env` lines (refresh token + Keycloak URL) for automatic token refresh. |
 
 Requires **jq** (e.g. `brew install jq`).
+
+## wabisaby-web client and logout
+
+The realm JSON includes a **wabisaby-web** client. If you created the client manually, ensure it has **exactly** these URIs or you will see "invalid redirect uri" or 400 on logout:
+
+- **Valid Redirect URIs:** `http://localhost:5174/auth/callback`, `http://localhost:5174`, and 127.0.0.1 equivalents.
+- **Valid post logout redirect URIs:** `http://localhost:5174`, `http://localhost:5174/`, and 127.0.0.1 equivalents.
+
+See **projects/wabisaby-web/docs/KEYCLOAK_CLIENT.md** for the full list and why each is needed.
+
+## CORS and the web app
+
+The realm’s **Web Origins** include `http://localhost:5174` and `http://127.0.0.1:5174` so the Vite dev server can call the token endpoint. To avoid CORS and browser-extension headers (e.g. `x-firephp-version`) breaking the token request, the frontend **proxies Keycloak** in dev. Use this as the Keycloak base URL: **`http://localhost:5174/keycloak`** (realm: `http://localhost:5174/keycloak/realms/wabisaby`). Set `VITE_KEYCLOAK_URL=http://localhost:5174/keycloak` in your app env; then token requests go to the same origin and Vite forwards to Keycloak. For production, use the real Keycloak URL.

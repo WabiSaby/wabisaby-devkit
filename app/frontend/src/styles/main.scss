@@ -1,5 +1,4 @@
-@use 'variables';
-@use 'base';
+// Variables, base, and shared components come from @wabisaby/ui (imported in main.tsx)
 @use 'layout';
 @use 'components';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');

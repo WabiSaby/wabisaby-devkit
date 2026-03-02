@@ -144,6 +144,8 @@ make setup    # check deps, init submodules, go mod download
 make start    # run DevKit app in dev mode (Wails + Vite hot-reload)
 ```
 
+After cloning, run `npm install` in both `projects/wabisaby-ui` and `app/frontend` so the shared UI library is linked and frontend dependencies are installed.
+
 > **Tip:** To point the app at the repo's `projects/` folder, set `WABISABY_DEVKIT_ROOT` to the repo root directory.
 
 <br />

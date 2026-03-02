@@ -41,6 +41,8 @@ export function ListServices():Promise<Array<model.Service>>;
 
 export function ListTags(arg1:string):Promise<{[key: string]: any}>;
 
+export function OpenWebAppURL():Promise<void>;
+
 export function ProjectClone(arg1:string):Promise<{[key: string]: string}>;
 
 export function ProjectOpen(arg1:string):Promise<{[key: string]: string}>;
@@ -73,6 +75,8 @@ export function StartService(arg1:string):Promise<{[key: string]: string}>;
 
 export function StartServiceLogsStream(arg1:string):Promise<void>;
 
+export function StartWebAppDev():Promise<void>;
+
 export function Status():Promise<{[key: string]: any}>;
 
 export function StopAllServices():Promise<{[key: string]: string}>;
@@ -96,6 +100,8 @@ export function StopReleaseProtosGoStream():Promise<void>;
 export function StopService(arg1:string):Promise<{[key: string]: string}>;
 
 export function StopServiceLogsStream(arg1:string):Promise<void>;
+
+export function StopWebAppDev():Promise<void>;
 
 export function SubmoduleSync(arg1:string):Promise<{[key: string]: string}>;
 

@@ -8,6 +8,7 @@
   "resetPasswordAllowed": true,
   "editUsernameAllowed": false,
   "bruteForceProtected": true,
+  "loginTheme": "keycloak",
   "clients": [
     {
       "clientId": "wabisaby-api",
@@ -24,8 +25,10 @@
       ],
       "webOrigins": [
         "http://localhost:3000",
+        "http://localhost:5174",
         "http://localhost:8080",
         "http://127.0.0.1:3000",
+        "http://127.0.0.1:5174",
         "http://127.0.0.1:8080"
       ],
       "protocolMappers": [
@@ -58,6 +61,29 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "wabisaby-web",
+      "name": "WabiSaby Web",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5174/*",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174/*",
+        "http://127.0.0.1:5174"
+      ],
+      "webOrigins": [
+        "http://localhost:5174",
+        "http://127.0.0.1:5174"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:5174##http://localhost:5174/##http://127.0.0.1:5174##http://127.0.0.1:5174/"
+      }
     }
   ],
   "roles": {
@@ -72,5 +98,7 @@
       }
     ]
   },
-  "defaultRoles": ["user"]
+  "defaultRoles": [
+    "user"
+  ]
 }

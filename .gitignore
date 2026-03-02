@@ -8,9 +8,13 @@ ehthumbs.db
 Thumbs.db
 *~
 
+*.json.md5
+
 # Editor files
 .vscode/
 .idea/
+.cursor/
+.claude/
 *.swp
 *.swo
 *~
@@ -27,9 +31,6 @@ Thumbs.db
 .env.*.local
 
 github_auth.json
-
-./cursor/
-./claude/
 
 # Build artifacts (if any)
 *.exe

@@ -59,11 +59,11 @@ type storedAuth struct {
 // Team-to-permission mapping
 // ──────────────────────────────────────────────────────────────────────────────
 
-var baseViews = []string{"home", "projects", "activity", "settings"}
-var baseCommands = []string{"Navigation", "General", "Projects", "Environment"}
+var baseViews = []string{"home", "projects", "frontend", "activity", "settings"}
+var baseCommands = []string{"Navigation", "General", "Projects", "Frontend", "Environment"}
 
-var everyView = []string{"home", "projects", "infrastructure", "backend", "mesh", "plugins", "activity", "settings"}
-var everyCommand = []string{"Navigation", "General", "Projects", "Infrastructure", "Backend", "Migrations", "Protobuf", "Environment"}
+var everyView = []string{"home", "projects", "frontend", "infrastructure", "backend", "mesh", "plugins", "activity", "settings"}
+var everyCommand = []string{"Navigation", "General", "Projects", "Frontend", "Infrastructure", "Backend", "Migrations", "Protobuf", "Environment"}
 
 var teamExtraViews = map[string][]string{
 	"core-devs":   {"infrastructure", "backend", "mesh"},

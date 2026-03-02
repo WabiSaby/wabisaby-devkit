@@ -9,12 +9,14 @@ import {
   Plug,
   Github,
   ChevronRight,
+  Globe,
 } from 'lucide-react';
-import { ViewLayout } from '../layouts';
+import { ViewLayout } from '@wabisaby/ui';
 import { usePermissions } from '../context/PermissionsContext';
 
 const QUICK_LINKS = [
   { id: 'projects', label: 'Projects', description: 'Manage and run projects', icon: Layout },
+  { id: 'frontend', label: 'Frontend', description: 'Run the WabiSaby web app in dev mode', icon: Globe },
   { id: 'infrastructure', label: 'Infrastructure', description: 'Services and Docker', icon: Boxes },
   { id: 'backend', label: 'Backend', description: 'Backend services', icon: Server },
   { id: 'mesh', label: 'WabiSaby Mesh', description: 'Mesh services', icon: Network },

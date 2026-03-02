@@ -3,7 +3,7 @@ import {
   PanelLeftClose, Play, Square, RefreshCw, GitBranch, FolderOpen,
   Hammer, TestTube, Paintbrush, FileSearch, Database, ArrowUp, ArrowDown,
   FileCode, Copy, CheckCircle, Trash2, Plus, Search, Tag, LayoutGrid,
-  Heart, ScrollText,
+  Heart, ScrollText, Globe, ExternalLink,
 } from 'lucide-react';
 
 // ── Navigation ──────────────────────────────────────────────────────────────
@@ -74,6 +74,15 @@ const navigation = [
     action: (ctx) => ctx.navigate('activity'),
   },
   {
+    id: 'nav:frontend',
+    label: 'Go to Frontend',
+    category: 'Navigation',
+    icon: Globe,
+    keywords: ['frontend', 'web', 'wabisaby-web', 'vite'],
+    targetView: 'frontend',
+    action: (ctx) => ctx.navigate('frontend'),
+  },
+  {
     id: 'nav:settings',
     label: 'Go to Settings',
     category: 'Navigation',
@@ -95,6 +104,47 @@ const general = [
     keywords: ['sidebar', 'collapse', 'expand', 'panel'],
     aliases: ['hide sidebar', 'show sidebar', 'close panel', 'open panel'],
     action: (ctx) => ctx.toggleSidebar(),
+  },
+];
+
+// ── Frontend (wabisaby-web) ──────────────────────────────────────────────────
+
+const frontend = [
+  {
+    id: 'frontend:start-dev',
+    label: 'Start Web App Dev Server',
+    category: 'Frontend',
+    icon: Play,
+    keywords: ['frontend', 'web', 'dev', 'vite', 'wabisaby-web', 'start'],
+    aliases: ['run dev server', 'npm run dev'],
+    feedback: () => ({ pending: 'Starting dev server...', success: 'Dev server started' }),
+    action: (ctx) => ctx.api.webapp.startDev(),
+  },
+  {
+    id: 'frontend:stop-dev',
+    label: 'Stop Web App Dev Server',
+    category: 'Frontend',
+    icon: Square,
+    keywords: ['frontend', 'web', 'dev', 'stop', 'wabisaby-web'],
+    action: (ctx) => ctx.api.webapp.stopDev(),
+  },
+  {
+    id: 'frontend:open-browser',
+    label: 'Open Web App in Browser',
+    category: 'Frontend',
+    icon: ExternalLink,
+    keywords: ['frontend', 'web', 'browser', 'open', 'localhost', 'wabisaby-web'],
+    aliases: ['open localhost:5174'],
+    action: (ctx) => ctx.api.webapp.openInBrowser(),
+  },
+  {
+    id: 'frontend:open-editor',
+    label: 'Open Web App in Editor',
+    category: 'Frontend',
+    icon: FolderOpen,
+    keywords: ['frontend', 'web', 'editor', 'open', 'wabisaby-web'],
+    feedback: () => ({ pending: 'Opening wabisaby-web...', success: 'Opened in editor' }),
+    action: (ctx) => ctx.api.projects.open('wabisaby-web'),
   },
 ];
 
@@ -535,6 +585,7 @@ const environment = [
 export const ALL_COMMANDS = [
   ...navigation,
   ...general,
+  ...frontend,
   ...projects,
   ...infrastructure,
   ...backend,

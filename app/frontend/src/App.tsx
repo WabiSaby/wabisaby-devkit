@@ -1,18 +1,19 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Layout, Boxes, Activity, Settings, PanelLeftClose, PanelLeft, Server, Github, Network, Plug } from 'lucide-react';
+import { Layout, Boxes, Activity, Settings, PanelLeftClose, PanelLeft, Server, Github, Network, Plug, Globe } from 'lucide-react';
 import { WindowIsFullscreen } from '../wailsjs/runtime/runtime';
 import { ProjectsView } from './views/ProjectsView';
 import { InfrastructureView } from './views/InfrastructureView';
 import { BackendServicesView } from './views/BackendServicesView';
 import { MeshServicesView } from './views/MeshServicesView';
 import { PluginInfrastructureView } from './views/PluginInfrastructureView';
+import { FrontendView } from './views/FrontendView';
 import { ActivityView } from './views/ActivityView';
 import { SettingsView } from './views/SettingsView';
 import { LandingView } from './views/LandingView';
 import { TopBar } from './components/TopBar';
 import { CommandPalette } from './components/CommandPalette';
 import { GitHubAuthModal } from './components/GitHubAuthModal';
-import { useToast } from './hooks/useToast';
+import { useToast } from '@wabisaby/ui';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
 import * as api from './lib/wails';
 import { events } from './lib/wails';
@@ -20,6 +21,7 @@ import { events } from './lib/wails';
 // Data-driven navigation items. Each entry maps to a sidebar link and a view.
 const NAV_ITEMS = [
   { viewId: 'projects',        label: 'Projects',              icon: Layout },
+  { viewId: 'frontend',        label: 'Frontend',              icon: Globe },
   { viewId: 'infrastructure',  label: 'Infrastructure',        icon: Boxes },
   { viewId: 'backend',         label: 'Backend',               icon: Server },
   { viewId: 'mesh',            label: 'WabiSaby Mesh',         icon: Network },
@@ -111,6 +113,8 @@ function AppInner() {
         return <LandingView onNavigate={handleNavigate} />;
       case 'projects':
         return <ProjectsView />;
+      case 'frontend':
+        return <FrontendView />;
       case 'infrastructure':
         return <InfrastructureView />;
       case 'backend':

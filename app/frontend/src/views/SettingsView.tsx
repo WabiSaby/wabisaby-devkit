@@ -9,7 +9,7 @@ import {
   Eye, EyeOff, Lock, Plus, Trash2, Pencil, Save, AlertTriangle,
   LogOut, Users, Shield, ExternalLink, ClipboardCopy
 } from 'lucide-react';
-import { ViewWithSidebarLayout } from '../layouts';
+import { ViewWithSidebarLayout } from '@wabisaby/ui';
 
 export function SettingsView({ onBreadcrumbChange }) {
   const [activeTab, setActiveTab] = useState('status');

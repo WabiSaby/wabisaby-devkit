@@ -2,10 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { services, events } from '../lib/wails';
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 import { StreamModal } from '../components/StreamModal';
-import { EmptyState } from '../components/EmptyState';
+import { EmptyState, ViewLayout, useToast } from '@wabisaby/ui';
 import { StartStopAllButtons } from '../components/StartStopAllButtons';
-import { ViewLayout } from '../layouts';
-import { useToast } from '../hooks/useToast';
 import {
   RefreshCw,
   Play,

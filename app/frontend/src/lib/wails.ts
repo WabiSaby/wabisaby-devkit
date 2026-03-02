@@ -26,6 +26,12 @@ export const projects = {
     dependencies: (name) => callForSuccess(getApp()?.ListProjectDependencies(name)),
 };
 
+export const webapp = {
+    startDev: () => callForSuccess(getApp()?.StartWebAppDev()),
+    stopDev: () => getApp()?.StopWebAppDev(),
+    openInBrowser: () => getApp()?.OpenWebAppURL(),
+};
+
 export const services = {
     list: () => getApp()?.ListServices() ?? Promise.resolve([]),
     start: (name) => callForSuccess(getApp()?.StartService(name)),

@@ -114,6 +114,8 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       KC_HTTP_PORT: 8180
+      # Allow extra request headers in CORS preflight (e.g. x-firephp-version from browser extensions)
+      KC_SPI_CORS_DEFAULT_ALLOWED_HEADERS: "Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, x-firephp-version"
     ports:
       - "8180:8180"
     volumes:

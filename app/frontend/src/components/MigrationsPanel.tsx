@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { migration, events } from '../lib/wails';
 import { StreamModal } from './StreamModal';
-import { useToast } from '../hooks/useToast';
+import { useToast } from '@wabisaby/ui';
 import {
   ArrowDown,
   ArrowUp,

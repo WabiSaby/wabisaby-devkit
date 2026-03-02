@@ -534,6 +534,121 @@ func (a *App) StopProjectStream(name, action string) {
 	a.streamMu.Unlock()
 }
 
+const webAppProjectName = "wabisaby-web"
+const webAppDevStreamID = "webapp:dev"
+const webAppDevServerURL = "http://localhost:5174"
+const webAppDevServerPort = 5174
+
+// StartWebAppDev starts the wabisaby-web dev server (npm run dev) and streams output.
+// Frees port 5174 first (kills any existing process on it), like other services, so the app always runs on the same port.
+// Emits: devkit:project:stream (project "wabisaby-web", action "dev") and devkit:project:stream:done
+func (a *App) StartWebAppDev() error {
+	projectDir := filepath.Join(a.projectsDir, webAppProjectName)
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		return fmt.Errorf("project %s not found", webAppProjectName)
+	}
+
+	a.streamMu.Lock()
+	if existing, ok := a.activeStreams[webAppDevStreamID]; ok {
+		existing()
+	}
+	ctx, cancel := context.WithCancel(a.ctx)
+	a.activeStreams[webAppDevStreamID] = cancel
+	a.streamMu.Unlock()
+
+	go func() {
+		defer func() {
+			a.streamMu.Lock()
+			delete(a.activeStreams, webAppDevStreamID)
+			a.streamMu.Unlock()
+		}()
+
+		// Free the web app port so Vite can bind to 5174 (same as other services)
+		_ = a.processManager.KillProcessOnPort(webAppDevServerPort)
+		if !a.processManager.WaitForPortFree(webAppDevServerPort, 3*time.Second) {
+			runtime.EventsEmit(a.ctx, "devkit:project:stream", map[string]interface{}{
+				"project": webAppProjectName,
+				"action":  "dev",
+				"line":    fmt.Sprintf("[ERROR] Port %d still in use after freeing it", webAppDevServerPort),
+			})
+			runtime.EventsEmit(a.ctx, "devkit:project:stream:done", map[string]interface{}{
+				"project": webAppProjectName,
+				"action":  "dev",
+				"success": false,
+				"error":   fmt.Sprintf("port %d still in use", webAppDevServerPort),
+			})
+			return
+		}
+
+		cmd := exec.CommandContext(ctx, "npm", "run", "dev")
+		cmd.Dir = projectDir
+
+		stdout, _ := cmd.StdoutPipe()
+		stderr, _ := cmd.StderrPipe()
+
+		if err := cmd.Start(); err != nil {
+			runtime.EventsEmit(a.ctx, "devkit:project:stream", map[string]interface{}{
+				"project": webAppProjectName,
+				"action":  "dev",
+				"line":    "[ERROR] Failed to start: " + err.Error(),
+			})
+			runtime.EventsEmit(a.ctx, "devkit:project:stream:done", map[string]interface{}{
+				"project": webAppProjectName,
+				"action":  "dev",
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+		scan := func(r io.Reader, prefix string) {
+			defer wg.Done()
+			scanner := bufio.NewScanner(r)
+			for scanner.Scan() {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					runtime.EventsEmit(a.ctx, "devkit:project:stream", map[string]interface{}{
+						"project": webAppProjectName,
+						"action":  "dev",
+						"line":    prefix + scanner.Text(),
+					})
+				}
+			}
+		}
+		go scan(stdout, "")
+		go scan(stderr, "[stderr] ")
+		wg.Wait()
+		_ = cmd.Wait()
+
+		runtime.EventsEmit(a.ctx, "devkit:project:stream:done", map[string]interface{}{
+			"project": webAppProjectName,
+			"action":  "dev",
+			"success": ctx.Err() == nil,
+		})
+	}()
+
+	return nil
+}
+
+// StopWebAppDev stops the wabisaby-web dev server if running.
+func (a *App) StopWebAppDev() {
+	a.streamMu.Lock()
+	if cancel, ok := a.activeStreams[webAppDevStreamID]; ok {
+		cancel()
+		delete(a.activeStreams, webAppDevStreamID)
+	}
+	a.streamMu.Unlock()
+}
+
+// OpenWebAppURL opens the wabisaby-web dev server URL in the default browser.
+func (a *App) OpenWebAppURL() {
+	runtime.BrowserOpenURL(a.ctx, webAppDevServerURL)
+}
+
 // StartBulkProjectStream starts streaming bulk operation across all projects
 // Emits: devkit:project:bulk:stream and devkit:project:bulk:stream:done
 func (a *App) StartBulkProjectStream(action string) error {

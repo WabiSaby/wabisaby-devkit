@@ -16,3 +16,9 @@
 [submodule "wabisaby-node"]
 	path = projects/wabisaby-node
 	url = https://github.com/WabiSaby/wabisaby-node.git
+[submodule "wabisaby-ui"]
+	path = projects/wabisaby-ui
+	url = https://github.com/WabiSaby/wabisaby-ui.git
+[submodule "wabisaby-web"]
+	path = projects/wabisaby-web
+	url = https://github.com/WabiSaby/wabisaby-web.git

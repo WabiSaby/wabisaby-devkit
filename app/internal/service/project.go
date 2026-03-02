@@ -20,6 +20,8 @@ var projectRepoURLs = map[string]string{
 	"wabisaby-protos":        "https://github.com/WabiSaby/wabisaby-protos.git",
 	"wabisaby-plugin-sdk-go": "https://github.com/WabiSaby/wabisaby-plugin-sdk-go.git",
 	"wabisaby-plugins":       "https://github.com/WabiSaby/wabisaby-plugins.git",
+	"wabisaby-ui":            "https://github.com/WabiSaby/wabisaby-ui.git",
+	"wabisaby-web": "https://github.com/WabiSaby/wabisaby-web.git",
 }
 
 // detectProjectLanguage returns the primary language of a project (GitHub-style),
@@ -93,6 +95,8 @@ func GetProjects(projectsDir string) ([]model.Project, error) {
 		{Name: "wabisaby-protos"},
 		{Name: "wabisaby-plugin-sdk-go"},
 		{Name: "wabisaby-plugins"},
+		{Name: "wabisaby-ui"},
+		{Name: "wabisaby-web"},
 	}
 
 	for i := range projects {

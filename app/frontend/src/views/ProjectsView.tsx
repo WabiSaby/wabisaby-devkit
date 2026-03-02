@@ -4,9 +4,7 @@ import { ProjectCard } from '../components/ProjectCard';
 import { StreamModal } from '../components/StreamModal';
 import { TagsModal } from '../components/TagsModal';
 import { DependencyGraph } from '../components/DependencyGraph';
-import { Skeleton } from '../components/Skeleton';
-import { EmptyState } from '../components/EmptyState';
-import { ViewLayout } from '../layouts';
+import { Skeleton, EmptyState, ViewLayout } from '@wabisaby/ui';
 import { usePermissions } from '../context/PermissionsContext';
 import { RefreshCw, GitMerge, X } from 'lucide-react';
 

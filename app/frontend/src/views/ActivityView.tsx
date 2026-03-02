@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { events } from '../lib/wails';
 import { Trash2, Activity } from 'lucide-react';
-import { ViewLayout } from '../layouts';
-import { EmptyState } from '../components/EmptyState';
+import { ViewLayout, EmptyState } from '@wabisaby/ui';
 
 const STREAM_EVENTS = [
   'devkit:project:stream',
@@ -30,6 +29,7 @@ export function ActivityView() {
   const [serviceFilter, setServiceFilter] = useState('all');
   const [textFilter, setTextFilter] = useState('');
   const [showRaw, setShowRaw] = useState(false);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const parseLogLine = (line) => {
     if (typeof line !== 'string') return { raw: String(line ?? '') };
@@ -44,6 +44,20 @@ export function ActivityView() {
     const stdoutMatch = /^\[stdout\]\s*(.*)/s.exec(line);
     if (stdoutMatch) {
       return { raw: line, level: 'INFO', msg: stdoutMatch[1].trim() || line };
+    }
+    // Go default log / chi request logger: "2026/02/28 13:04:17 message"
+    const goLogMatch = /^(\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2})\s+(.+)$/s.exec(line);
+    if (goLogMatch) {
+      const [, timeStr, msg] = goLogMatch;
+      const isoTime = timeStr.replace(/^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/, '$1-$2-$3T$4:$5:$6');
+      const statusMatch = msg.match(/\s-\s(\d{3})\s/);
+      let level = 'INFO';
+      if (statusMatch) {
+        const code = parseInt(statusMatch[1], 10);
+        if (code >= 500) level = 'ERROR';
+        else if (code >= 400) level = 'WARN';
+      }
+      return { raw: line, time: isoTime, level, msg: msg.trim() };
     }
     if (!line.startsWith('time=')) return { raw: line };
 
@@ -147,7 +161,10 @@ export function ActivityView() {
     topRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [entries]);
 
-  const clear = () => setEntries([]);
+  const clear = () => {
+    setEntries([]);
+    setExpandedIndex(null);
+  };
 
   return (
     <ViewLayout
@@ -215,8 +232,22 @@ export function ActivityView() {
               parsed.time && !Number.isNaN(Date.parse(parsed.time))
                 ? new Date(parsed.time).toLocaleTimeString()
                 : (e.ts ? new Date(e.ts).toLocaleTimeString() : '');
+            const isExpanded = expandedIndex === i;
+            const displayMsg = showRaw || !parsed.msg ? parsed.raw : parsed.msg;
             return (
-              <div key={i} className="activity-log__entry">
+              <div
+                key={i}
+                role="button"
+                tabIndex={0}
+                className={`activity-log__entry ${isExpanded ? 'activity-log__entry--expanded' : ''}`}
+                onClick={() => setExpandedIndex(isExpanded ? null : i)}
+                onKeyDown={(ev) => {
+                  if (ev.key === 'Enter' || ev.key === ' ') {
+                    ev.preventDefault();
+                    setExpandedIndex(isExpanded ? null : i);
+                  }
+                }}
+              >
                 <span className="activity-log__source" title={e.event}>
                   [{e.source}]
                 </span>
@@ -227,8 +258,11 @@ export function ActivityView() {
                   </span>
                 )}
                 <div className="activity-log__content">
-                  <span className="activity-log__message">
-                    {showRaw || !parsed.msg ? parsed.raw : parsed.msg}
+                  <span
+                    className={`activity-log__message ${isExpanded ? 'activity-log__message--expanded' : ''}`}
+                    title={isExpanded ? undefined : (parsed.raw || parsed.msg)}
+                  >
+                    {displayMsg}
                   </span>
                   {!showRaw && (parsed.component || parsed.source) && (
                     <span className="activity-log__meta">
