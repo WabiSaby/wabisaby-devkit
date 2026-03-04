@@ -536,11 +536,11 @@ func (a *App) StopProjectStream(name, action string) {
 
 const webAppProjectName = "wabisaby-web"
 const webAppDevStreamID = "webapp:dev"
-const webAppDevServerURL = "http://localhost:5174"
-const webAppDevServerPort = 5174
+const webAppDevServerURL = "http://localhost:5175"
+const webAppDevServerPort = 5175
 
-// StartWebAppDev starts the wabisaby-web dev server (npm run dev) and streams output.
-// Frees port 5174 first (kills any existing process on it), like other services, so the app always runs on the same port.
+// StartWebAppDev starts the wabisaby-web dev server (npm run dev) on port 5175.
+// Uses 5175 (not 5174) because 5174 is used by the DevKit's own Vite server when running in dev mode.
 // Emits: devkit:project:stream (project "wabisaby-web", action "dev") and devkit:project:stream:done
 func (a *App) StartWebAppDev() error {
 	projectDir := filepath.Join(a.projectsDir, webAppProjectName)
@@ -563,7 +563,7 @@ func (a *App) StartWebAppDev() error {
 			a.streamMu.Unlock()
 		}()
 
-		// Free the web app port so Vite can bind to 5174 (same as other services)
+		// Free the web app port so Vite can bind to 5175
 		_ = a.processManager.KillProcessOnPort(webAppDevServerPort)
 		if !a.processManager.WaitForPortFree(webAppDevServerPort, 3*time.Second) {
 			runtime.EventsEmit(a.ctx, "devkit:project:stream", map[string]interface{}{
@@ -582,6 +582,7 @@ func (a *App) StartWebAppDev() error {
 
 		cmd := exec.CommandContext(ctx, "npm", "run", "dev")
 		cmd.Dir = projectDir
+		cmd.Env = append(os.Environ(), fmt.Sprintf("PORT=%d", webAppDevServerPort))
 
 		stdout, _ := cmd.StdoutPipe()
 		stderr, _ := cmd.StderrPipe()
@@ -767,6 +768,11 @@ var serviceUIURLs = map[string]string{
 	"MinIO":          "http://localhost:9001",
 	"Vault":          "http://localhost:8200",
 	"Keycloak":       "http://localhost:8180/admin",
+}
+
+// IsDockerConnected returns true if the Docker daemon is running and accessible.
+func (a *App) IsDockerConnected() bool {
+	return service.IsDockerConnected()
 }
 
 // ListServices returns all Docker services with their status

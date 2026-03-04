@@ -34,6 +34,7 @@ export const webapp = {
 
 export const services = {
     list: () => getApp()?.ListServices() ?? Promise.resolve([]),
+    isDockerConnected: () => getApp()?.IsDockerConnected() ?? Promise.resolve(false),
     start: (name) => callForSuccess(getApp()?.StartService(name)),
     stop: (name) => callForSuccess(getApp()?.StopService(name)),
     startAll: () => callForSuccess(getApp()?.StartAllServices()),

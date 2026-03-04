@@ -6,7 +6,7 @@ import { StreamModal } from '../components/StreamModal';
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
 
 const WEBAPP_PROJECT = 'wabisaby-web';
-const DEV_SERVER_URL = 'http://localhost:5174';
+const DEV_SERVER_URL = 'http://localhost:5175';
 
 export function FrontendView() {
   const [devStreamOpen, setDevStreamOpen] = useState(false);

@@ -541,6 +541,36 @@
   animation: pulse-soft 1.2s ease-in-out infinite;
 }
 
+// Docker status indicator – minimal dot + text, no badge
+.docker-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+
+  &__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+    box-shadow: 0 0 6px currentColor;
+    flex-shrink: 0;
+  }
+
+  &--connected {
+    color: #34d399; // emerald-400, softer than badge green
+    .docker-status__dot {
+      animation: pulse-soft 1.2s ease-in-out infinite;
+    }
+  }
+
+  &--disconnected {
+    color: #94a3b8; // slate-400, muted
+  }
+}
+
 // Project card – responsive: grow to fit content so footer/actions are never clipped
 .project-card {
   min-height: 220px;

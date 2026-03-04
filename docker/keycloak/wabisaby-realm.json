@@ -26,9 +26,11 @@
       "webOrigins": [
         "http://localhost:3000",
         "http://localhost:5174",
+        "http://localhost:5175",
         "http://localhost:8080",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175",
         "http://127.0.0.1:8080"
       ],
       "protocolMappers": [
@@ -74,15 +76,51 @@
       "redirectUris": [
         "http://localhost:5174/*",
         "http://localhost:5174",
+        "http://localhost:5175/*",
+        "http://localhost:5175",
         "http://127.0.0.1:5174/*",
-        "http://127.0.0.1:5174"
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175/*",
+        "http://127.0.0.1:5175"
       ],
       "webOrigins": [
         "http://localhost:5174",
-        "http://127.0.0.1:5174"
+        "http://localhost:5175",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175"
+      ],
+      "protocolMappers": [
+        {
+          "name": "tenant_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "tenant_id",
+            "claim.name": "tenant_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "user_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "user_id",
+            "claim.name": "user_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
       ],
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:5174##http://localhost:5174/##http://127.0.0.1:5174##http://127.0.0.1:5174/"
+        "post.logout.redirect.uris": "http://localhost:5174##http://localhost:5174/##http://localhost:5175##http://localhost:5175/##http://127.0.0.1:5174##http://127.0.0.1:5174/##http://127.0.0.1:5175##http://127.0.0.1:5175/"
       }
     }
   ],

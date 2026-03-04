@@ -134,7 +134,7 @@ const frontend = [
     category: 'Frontend',
     icon: ExternalLink,
     keywords: ['frontend', 'web', 'browser', 'open', 'localhost', 'wabisaby-web'],
-    aliases: ['open localhost:5174'],
+    aliases: ['open localhost:5175'],
     action: (ctx) => ctx.api.webapp.openInBrowser(),
   },
   {

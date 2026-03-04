@@ -31,6 +31,8 @@ export function GitHubRefreshTeams():Promise<service.Permissions>;
 
 export function GitHubStartDeviceFlow():Promise<service.DeviceFlowResponse>;
 
+export function IsDockerConnected():Promise<boolean>;
+
 export function ListBackendServices():Promise<Array<model.BackendService>>;
 
 export function ListProjectDependencies(arg1:string):Promise<Array<model.Dependency>>;

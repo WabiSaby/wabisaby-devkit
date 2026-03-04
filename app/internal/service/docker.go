@@ -7,6 +7,15 @@ import (
 	"strings"
 )
 
+// IsDockerConnected returns true if the Docker daemon is running and accessible.
+func IsDockerConnected() bool {
+	cmd := exec.Command("docker", "info")
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return true
+}
+
 // CheckServiceStatus checks if a Docker service is running
 func CheckServiceStatus(name string, port int, devkitRoot string) string {
 	// Map service names to Docker container names

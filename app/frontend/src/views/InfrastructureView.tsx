@@ -24,6 +24,7 @@ import {
 export function InfrastructureView() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [dockerConnected, setDockerConnected] = useState(null);
   const [logsModal, setLogsModal] = useState(null);
   const [logsLines, setLogsLines] = useState([]);
   const [logsActive, setLogsActive] = useState(false);
@@ -35,14 +36,20 @@ export function InfrastructureView() {
     setLoading(true);
     if (!window.go) {
       setList([]);
+      setDockerConnected(false);
       setLoading(false);
       return;
     }
     try {
-      const data = await services.list();
+      const [data, connected] = await Promise.all([
+        services.list(),
+        services.isDockerConnected()
+      ]);
       setList(Array.isArray(data) ? data : []);
+      setDockerConnected(connected);
     } catch {
       setList([]);
+      setDockerConnected(false);
     }
     setLoading(false);
   }, []);
@@ -210,6 +217,15 @@ export function InfrastructureView() {
         subtitle="Start and stop infrastructure services."
         actions={
           <>
+            {dockerConnected !== null && (
+              <span
+                className={`docker-status ${dockerConnected ? 'docker-status--connected' : 'docker-status--disconnected'}`}
+                title={dockerConnected ? 'Docker daemon is running and accessible' : 'Docker daemon is not running or not accessible'}
+              >
+                <span className="docker-status__dot" />
+                {dockerConnected ? 'Docker Connected' : 'Docker Not Connected'}
+              </span>
+            )}
             <button type="button" onClick={fetchServices} className="btn btn--secondary">
               <RefreshCw size={14} className={loading ? 'icon-spin' : ''} />
               Refresh

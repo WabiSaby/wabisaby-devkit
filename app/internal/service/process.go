@@ -328,6 +328,13 @@ func (pm *ProcessManager) Start(serviceName string) error {
 		cb := pm.onExit
 		pm.mu.Unlock()
 
+		// Log last output to terminal when service fails, so the error is visible without opening Activity view
+		if err != nil && len(exitOutput) > 0 {
+			log.Printf("Service %s last output:", serviceName)
+			for _, line := range exitOutput {
+				log.Printf("  %s", line)
+			}
+		}
 		if cb != nil {
 			cb(serviceName, err, exitOutput)
 		}

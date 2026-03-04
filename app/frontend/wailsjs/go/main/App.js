@@ -58,6 +58,10 @@ export function GitHubStartDeviceFlow() {
   return window['go']['main']['App']['GitHubStartDeviceFlow']();
 }
 
+export function IsDockerConnected() {
+  return window['go']['main']['App']['IsDockerConnected']();
+}
+
 export function ListBackendServices() {
   return window['go']['main']['App']['ListBackendServices']();
 }
