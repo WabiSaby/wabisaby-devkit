@@ -6,6 +6,9 @@ source "$(dirname "$0")/common.sh"
 
 check_devkit_root
 
+# Let each project's go.mod toolchain be used (e.g. Go 1.26 for wabisaby-core)
+export GOTOOLCHAIN=auto
+
 log_header "Building All Projects"
 
 RESULTS=()
